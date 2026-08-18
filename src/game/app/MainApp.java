@@ -104,6 +104,8 @@ public class MainApp extends Application {
                 uiManager.getCityNameInputOverlay()
         );
 
+        // Добавляем панель правительства
+
         StackPane.setAlignment(uiManager.getProgressPanel(), Pos.TOP_LEFT);
         StackPane.setMargin(uiManager.getProgressPanel(), new Insets(60, 0, 0, 10));
         StackPane.setAlignment(uiManager.getResearchPanel(), Pos.TOP_LEFT);

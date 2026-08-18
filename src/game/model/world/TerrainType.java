@@ -40,4 +40,9 @@ public enum TerrainType {
     public boolean isPassable() { return movementCost != -1; }
     public boolean isRiver() { return isRiver; }
     public String getSpritePath() { return spritePath; }
+
+    // game.model.world.TerrainType
+    public boolean isWater() {
+        return this == OCEAN || this == RIVER;
+    }
 }

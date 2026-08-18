@@ -18,6 +18,7 @@ public class TopPanelManager {
 
     private final GameController controller;
     private final UIManager uiManager;
+    private Button govButton;
 
     private HBox topPanel;
     private Label turnLabel;
@@ -103,6 +104,9 @@ public class TopPanelManager {
             legitimacyLabel.setVisible(true);
             legitimacyProgressBar.setVisible(false);
         }
+        boolean govUnlocked = controller.isGovernmentUnlocked();
+//        govButton.setVisible(govUnlocked);
+//        govButton.setVisible(true);
     }
 
     // ========================================================================
@@ -155,6 +159,14 @@ public class TopPanelManager {
         endTurnButton = new Button("Завершить ход");
         endTurnButton.setStyle("-fx-font-size: 14px; -fx-background-color: #4CAF50; -fx-text-fill: white;");
         endTurnButton.setOnAction(e -> controller.endTurn());
+
+        // В методе createTopPanel()
+        govButton = new Button("⚖️ Правительство");
+        govButton.setStyle("-fx-font-size: 12px; -fx-background-color: #4a5a7a; -fx-text-fill: white;");
+        govButton.setVisible(true); // временно всегда видна
+        govButton.setOnAction(e -> uiManager.showGovernmentOverlay());
+        panel.getChildren().add(govButton);
+
 
         panel.getChildren().addAll(
                 turnLabel, statusLabel, spacer,

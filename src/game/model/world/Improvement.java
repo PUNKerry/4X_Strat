@@ -3,7 +3,8 @@ package game.model.world;
 public class Improvement {
     public enum Type {
         FARM, MINE, HOUSING,
-        PASTURE, LUMBERMILL, QUARRY   // новые
+        PASTURE, LUMBERMILL, QUARRY,
+        FISHING   // новое
     }
 
     private final Type type;

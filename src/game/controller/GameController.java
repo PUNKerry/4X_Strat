@@ -4,6 +4,7 @@ import engine.core.GameObject;
 import engine.core.TileRenderer;
 import engine.infrastructure.GameState;
 import engine.infrastructure.HistoryTracker;
+import game.UI.GovernmentPanel;
 import game.UI.UIManager;
 import game.model.city.City;
 import game.model.city.CityGlobal;
@@ -40,6 +41,9 @@ public class GameController {
     private final ImprovementRegistry improvementRegistry;
     private final DistrictRegistry districtRegistry;
     private final CenterImprovementRegistry centerImprovementRegistry;
+
+    private GovernmentManager governmentManager;
+    private GovernmentPanel governmentPanel;
 
     // --- Менеджеры ---
     private final TurnManager turnManager;
@@ -88,6 +92,10 @@ public class GameController {
 
         // Создаём регистры на основе переданного TechTree
         this.techRegistry = new TechRegistry(techTree);
+
+        this.governmentManager = new GovernmentManager(this, techRegistry);
+        this.governmentPanel = new GovernmentPanel(this);
+
         this.improvementRegistry = new ImprovementRegistry();
         this.districtRegistry = new DistrictRegistry();
         this.centerImprovementRegistry = new CenterImprovementRegistry();
@@ -114,7 +122,17 @@ public class GameController {
     // ========================================================================
     // Геттеры
     // ========================================================================
+    public GovernmentManager getGovernmentManager() {
+        return governmentManager;
+    }
 
+    public GovernmentPanel getGovernmentPanel() {
+        return governmentPanel;
+    }
+
+    public boolean isGovernmentUnlocked() {
+        return techTree.isResearched("Государство");
+    }
     public World getCurrentWorld() { return world; }
     public HexGrid getCurrentHexGrid() { return hexGrid; }
     public World getWorld() { return world; }
@@ -390,6 +408,7 @@ public class GameController {
         fogManager.reset(); // вызываем reset у FogManager, который сбросит fogOfWar
         cityViewManager.reset();
         assignmentManager.reset();
+        governmentManager.reset();
 
         // Пересчёт тумана (теперь видимость будет корректной)
         recalculateFog();

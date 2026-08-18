@@ -6,6 +6,7 @@ import game.model.research.TechNode;
 import game.model.unit.Unit;
 import game.model.world.Hex;
 import game.model.world.Tile;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
@@ -47,7 +48,6 @@ public class UIManager {
     public UIManager(GameController controller) {
         this.controller = controller;
 
-        // Создаём менеджеры панелей, передавая регистры из контроллера
         this.researchPanelManager = new ResearchPanelManager(controller, this);
         this.uiPanelManager = new UIPanelManager(
                 controller,
@@ -110,13 +110,6 @@ public class UIManager {
         StackPane overlay = new StackPane();
         overlay.setVisible(false);
         overlay.setStyle("-fx-background-color: rgba(0,0,0,0.7);");
-        VBox overlayContent = new VBox(15);
-        overlayContent.setAlignment(Pos.CENTER);
-        overlayContent.setStyle("-fx-background-color: rgba(30,30,40,0.95); -fx-padding: 20; -fx-border-radius: 10;");
-        overlayContent.setMaxWidth(800);
-        overlayContent.setMaxHeight(600);
-        overlay.getChildren().add(overlayContent);
-        StackPane.setAlignment(overlayContent, Pos.CENTER);
         return overlay;
     }
 
@@ -212,6 +205,25 @@ public class UIManager {
         }
         TechTreeInteractiveOverlay overlay = new TechTreeInteractiveOverlay(nodes, title, controller, overlayRootLocal, type);
         overlay.show();
+    }
+
+    // Показать панель правительства как оверлей
+    public void showGovernmentOverlay() {
+        // Временно убрана проверка на технологию
+        // if (!controller.isGovernmentUnlocked()) {
+        //     updateStatus("Правительство станет доступно после изучения 'Государство'.");
+        //     return;
+        // }
+        overlayRootLocal.getChildren().clear();
+        VBox content = controller.getGovernmentPanel().getPanel();
+        Button closeBtn = new Button("✕");
+        closeBtn.setStyle("-fx-font-size: 18px; -fx-background-color: #6a4a4a; -fx-text-fill: white; -fx-padding: 5 15;");
+        closeBtn.setOnAction(e -> overlayRootLocal.setVisible(false));
+        StackPane.setAlignment(closeBtn, Pos.TOP_RIGHT);
+        StackPane.setMargin(closeBtn, new Insets(10));
+        overlayRootLocal.getChildren().addAll(content, closeBtn);
+        overlayRootLocal.setVisible(true);
+        controller.getGovernmentPanel().updatePanel();
     }
 
     public static class ProductionButtonItem {

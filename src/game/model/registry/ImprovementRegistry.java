@@ -30,6 +30,17 @@ public class ImprovementRegistry {
                 Improvement.Type.QUARRY, "Каменоломня", 35, "Строительство дорог",
                 0, 1, Set.of(TerrainType.HILL, TerrainType.MOUNTAIN), 5, 2
         ));
+        register(new ImprovementData(
+                Improvement.Type.FISHING,
+                "Рыболовная лодка",
+                20,
+                "Рыболовство",
+                2,   // +2 еды
+                0,   // нет производства
+                Set.of(TerrainType.OCEAN, TerrainType.RIVER), // только вода
+                2,   // рабочих для стройки (2 ед. = 100 чел.)
+                1    // рабочих для работы
+        ));
     }
 
     private void register(ImprovementData data) {
