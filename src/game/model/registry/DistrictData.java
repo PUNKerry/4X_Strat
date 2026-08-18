@@ -8,6 +8,7 @@ public class DistrictData {
     private final int cost;
     private final String requiredTech;
     private final int scienceBonus;
+
     private final int cultureBonus;
     private final int housingBonus;
     private final int faithBonus;

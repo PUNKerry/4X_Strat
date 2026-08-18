@@ -171,6 +171,7 @@ public class CityImprovementsManager {
     }
 
     public boolean startDistrict(District.Type type, Hex hex) {
+        if (!city.canBuildDistrict(type)) return false;
         DistrictData data = districtRegistry.get(type);
         if (data == null) return false;
         if (!canBuildDistrict(type)) return false;

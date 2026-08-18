@@ -7,12 +7,13 @@ import java.util.*;
 public class DistrictRegistry {
     private final Map<District.Type, DistrictData> map = new HashMap<>();
 
+    // game.model.registry.DistrictRegistry
     public DistrictRegistry() {
         register(new DistrictData(
                 District.Type.HOUSING,
                 "Жилища",
                 50,
-                "Примитивное плотничество",
+                "Строительство хижин",  // технология
                 0, 0, 500, 0,
                 4
         ));
@@ -20,7 +21,7 @@ public class DistrictRegistry {
                 District.Type.DISTRICT_1,
                 "Район науки",
                 60,
-                null, // всегда доступен
+                "Письменность",   // технология
                 1, 0, 0, 0,
                 4
         ));
@@ -28,7 +29,7 @@ public class DistrictRegistry {
                 District.Type.DISTRICT_2,
                 "Район культуры",
                 60,
-                null,
+                "Искусство",      // технология
                 0, 1, 0, 0,
                 4
         ));

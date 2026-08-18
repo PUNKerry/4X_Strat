@@ -186,14 +186,9 @@ public class TileRenderer {
         }
 
         // --- Улучшения ---
+        // --- Улучшения ---
         Improvement improvement = tile.getImprovement();
         if (improvement != null && (fogState != FogOfWar.State.UNKNOWN || cityView)) {
-            Image improvementSprite = null;
-            if (improvement.getType() == Improvement.Type.FARM) {
-                improvementSprite = SpriteManager.getInstance().getSprite("improvements/farm.png");
-            } else if (improvement.getType() == Improvement.Type.MINE) {
-                improvementSprite = SpriteManager.getInstance().getSprite("improvements/mine.png");
-            }
             double size = hexGrid.getHexSize();
             if (improvement.isUnderConstruction()) {
                 gc.setFill(Color.rgb(255, 200, 0, 0.3));
@@ -204,13 +199,8 @@ public class TileRenderer {
                 gc.setFill(Color.WHITE);
                 gc.setFont(Font.font(10));
                 gc.fillText("Стройка", cx - size * 0.25, cy + size * 0.05);
-            } else if (improvementSprite != null) {
-                double x = cx - size * 0.4;
-                double y = cy - size * 0.4;
-                double w = size * 0.8;
-                double h = size * 0.8;
-                gc.drawImage(improvementSprite, x, y, w, h);
             } else {
+                // Существующие улучшения
                 if (improvement.getType() == Improvement.Type.FARM) {
                     gc.setFill(Color.rgb(34, 139, 34, 0.8));
                     gc.fillRect(cx - size * 0.2, cy - size * 0.2, size * 0.4, size * 0.4);
@@ -218,6 +208,24 @@ public class TileRenderer {
                     gc.setFill(Color.rgb(128, 128, 128, 0.8));
                     gc.fillPolygon(new double[]{cx, cx - size * 0.25, cx + size * 0.25},
                             new double[]{cy - size * 0.3, cy + size * 0.2, cy + size * 0.2}, 3);
+                } else if (improvement.getType() == Improvement.Type.PASTURE) {
+                    gc.setFill(Color.rgb(34, 139, 34, 0.6));
+                    gc.fillRect(cx - size * 0.25, cy - size * 0.25, size * 0.5, size * 0.5);
+                    gc.setStroke(Color.rgb(0, 100, 0));
+                    gc.setLineWidth(1.5);
+                    gc.strokeRect(cx - size * 0.25, cy - size * 0.25, size * 0.5, size * 0.5);
+                } else if (improvement.getType() == Improvement.Type.LUMBERMILL) {
+                    gc.setFill(Color.rgb(139, 69, 19, 0.7));
+                    gc.fillRect(cx - size * 0.2, cy - size * 0.3, size * 0.4, size * 0.6);
+                    gc.setStroke(Color.rgb(100, 50, 0));
+                    gc.setLineWidth(1.5);
+                    gc.strokeRect(cx - size * 0.2, cy - size * 0.3, size * 0.4, size * 0.6);
+                } else if (improvement.getType() == Improvement.Type.QUARRY) {
+                    gc.setFill(Color.rgb(128, 128, 128, 0.8));
+                    gc.fillOval(cx - size * 0.25, cy - size * 0.25, size * 0.5, size * 0.5);
+                    gc.setStroke(Color.rgb(80, 80, 80));
+                    gc.setLineWidth(1.5);
+                    gc.strokeOval(cx - size * 0.25, cy - size * 0.25, size * 0.5, size * 0.5);
                 }
             }
         }

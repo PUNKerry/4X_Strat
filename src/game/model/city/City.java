@@ -260,6 +260,32 @@ public class City {
         return null;
     }
 
+    // game.model.city.City
+    public int getMaxDistricts() {
+        TechRegistry techRegistry = improvementManager.getTechRegistry();
+        if (techRegistry.isResearched("Олигархия")) {
+            return 2;
+        } else {
+            return 1;
+        }
+    }
+
+    // game.model.city.City
+    public boolean canBuildDistrict(District.Type type) {
+        // Проверка технологии и лимита
+        if (!improvementManager.canBuildDistrict(type)) return false;
+        int currentDistricts = improvementManager.getCompletedDistricts().size();
+        int maxDistricts = getMaxDistricts();
+        return currentDistricts < maxDistricts;
+    }
+
+    public List<Hex> getAvailableTilesForDistrict(District.Type type) {
+        if (!canBuildDistrict(type)) {
+            return new ArrayList<>(); // если нельзя строить, возвращаем пустой список
+        }
+        return improvementManager.getAvailableTilesForDistrict(type);
+    }
+
     // ========================================================================
     // Методы улучшений (делегирование)
     // ========================================================================
@@ -297,13 +323,7 @@ public class City {
     // Методы районов (делегирование)
     // ========================================================================
 
-    public boolean canBuildDistrict(District.Type type) {
-        return improvementManager.canBuildDistrict(type);
-    }
 
-    public List<Hex> getAvailableTilesForDistrict(District.Type type) {
-        return improvementManager.getAvailableTilesForDistrict(type);
-    }
 
     public boolean startDistrict(District.Type type, Hex hex, TechTree techTree) {
         return improvementManager.startDistrict(type, hex);
