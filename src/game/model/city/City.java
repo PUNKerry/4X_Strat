@@ -18,16 +18,13 @@ public class City {
     private transient World world;
     private transient GameController controller;
 
-    // Менеджеры
     private final CityProductionManager productionManager;
     private final CityPopulationManager populationManager;
     private final CityTerritoryManager territoryManager;
     private final CityWorkersManager workersManager;
     private final CityImprovementsManager improvementManager;
 
-    // Жильё (базовое)
     private int housingCapacity = 1000;
-
     private static final String[] TYPE_NAMES = {"Поселение", "Малый городок", "Город", "Мегаполис"};
 
     // ========================================================================
@@ -44,7 +41,6 @@ public class City {
         this.world = world;
         this.controller = controller;
 
-        // Инициализация менеджеров
         this.productionManager = new CityProductionManager(this);
         int initialPopulation = 100 + (int)(Math.random() * 401);
         int initialHappiness = 50;
@@ -54,40 +50,33 @@ public class City {
         this.improvementManager = new CityImprovementsManager(this, world, controller,
                 improvementRegistry, districtRegistry, centerRegistry, techRegistry);
 
-        // Назначаем одного горожанина в центр
         workersManager.initCenter(center);
     }
 
     // ========================================================================
-    // Геттеры для основных данных
+    // Геттеры
     // ========================================================================
 
     public String getName() { return name; }
     public Hex getCenter() { return center; }
     public GameController getController() { return controller; }
 
-    // ========================================================================
-    // Делегирование населению
-    // ========================================================================
-
     public int getPopulation() { return populationManager.getPopulation(); }
     public void setPopulation(int population) { populationManager.setPopulation(population); }
-    public int getHappiness() { return populationManager.getHappiness() + improvementManager.getHappinessBonus(); }
+    public int getHappiness() {
+        int bonus = populationManager.getHappiness() + improvementManager.getHappinessBonus();
+        if (controller != null && controller.getGovernmentManager() != null) {
+            bonus += controller.getGovernmentManager().getTotalHappinessBonus();
+        }
+        return bonus;
+    }
     public void setHappiness(int happiness) { populationManager.setHappiness(happiness); }
     public int getPopulationChange() { return populationManager.getPopulationChange(); }
     public boolean isStarving() { return populationManager.isStarving(); }
 
-    // ========================================================================
-    // Делегирование территории
-    // ========================================================================
-
     public Set<Hex> getTiles() { return territoryManager.getTiles(); }
     public int getExpansionTimer() { return territoryManager.getExpansionTimer(); }
     public boolean hasFreshWater() { return territoryManager.hasFreshWater(); }
-
-    // ========================================================================
-    // Делегирование производства
-    // ========================================================================
 
     public String getProductionItem() { return productionManager.getProductionItem(); }
     public int getProductionProgress() { return productionManager.getProductionProgress(); }
@@ -106,17 +95,9 @@ public class City {
     public Queue<String> getCenterImprovementQueue() { return productionManager.getCenterImprovementQueue(); }
     public CityProductionManager getProductionManager() { return productionManager; }
 
-    // ========================================================================
-    // Делегирование улучшений (включая районы и центральные)
-    // ========================================================================
-
     public Set<District> getCompletedDistricts() { return improvementManager.getCompletedDistricts(); }
     public Set<String> getCompletedCenterImprovements() { return improvementManager.getCompletedCenterImprovements(); }
     public int getLegitimacyBonus() { return improvementManager.getLegitimacyBonus(); }
-
-    // ========================================================================
-    // Делегирование рабочих
-    // ========================================================================
 
     public Map<Hex, Integer> getAssignedCitizens() { return workersManager.getAssignedCitizens(); }
     public int getReservedWorkers() { return workersManager.getReservedWorkers(); }
@@ -129,7 +110,6 @@ public class City {
     public int getUsedCitizens() { return workersManager.getUsedCitizens(); }
     public int getCitizensPerTile() { return workersManager.getCitizensPerTile(); }
 
-    // Методы назначения горожан
     public boolean assignCitizen(Hex hex) { return workersManager.assignCitizen(hex); }
     public boolean unassignCitizen(Hex hex) { return workersManager.unassignCitizen(hex); }
     public int getAssignedCount(Hex hex) { return workersManager.getAssignedCount(hex); }
@@ -164,7 +144,7 @@ public class City {
     }
 
     // ========================================================================
-    // Расчёт ресурсов (еда, производство, наука, культура, вера)
+    // Расчёт ресурсов
     // ========================================================================
 
     public int calculateFood(World world) {
@@ -186,10 +166,8 @@ public class City {
             }
         }
 
-        // Бонусы от центральных улучшений
         total += improvementManager.getFoodBonus();
 
-        // Штраф за отсутствие пресной воды
         if (!territoryManager.hasFreshWater()) {
             total = (int)(total * 0.5);
         }
@@ -214,8 +192,13 @@ public class City {
             }
         }
 
-        // Бонусы от центральных улучшений
         total += improvementManager.getProductionBonus();
+
+        // Бонус от законов (плоский)
+        if (controller != null && controller.getGovernmentManager() != null) {
+            total += controller.getGovernmentManager().getTotalProductionBonus();
+        }
+
         return total;
     }
 
@@ -240,7 +223,6 @@ public class City {
     }
 
     public int getGoldOutput() {
-        // Пока нет бонусов от улучшений, но можно добавить
         return (int)(populationManager.getPopulation() * 0.3 / 1000.0);
     }
 
@@ -260,7 +242,10 @@ public class City {
         return null;
     }
 
-    // game.model.city.City
+    // ========================================================================
+    // Районы и улучшения (делегирование)
+    // ========================================================================
+
     public int getMaxDistricts() {
         TechRegistry techRegistry = improvementManager.getTechRegistry();
         if (techRegistry.isResearched("Олигархия")) {
@@ -270,9 +255,7 @@ public class City {
         }
     }
 
-    // game.model.city.City
     public boolean canBuildDistrict(District.Type type) {
-        // Проверка технологии и лимита
         if (!improvementManager.canBuildDistrict(type)) return false;
         int currentDistricts = improvementManager.getCompletedDistricts().size();
         int maxDistricts = getMaxDistricts();
@@ -281,14 +264,10 @@ public class City {
 
     public List<Hex> getAvailableTilesForDistrict(District.Type type) {
         if (!canBuildDistrict(type)) {
-            return new ArrayList<>(); // если нельзя строить, возвращаем пустой список
+            return new ArrayList<>();
         }
         return improvementManager.getAvailableTilesForDistrict(type);
     }
-
-    // ========================================================================
-    // Методы улучшений (делегирование)
-    // ========================================================================
 
     public boolean canBuildImprovement(Hex hex, Improvement.Type type) {
         return improvementManager.canBuildImprovement(hex, type);
@@ -299,7 +278,6 @@ public class City {
     }
 
     public boolean startImprovement(Hex hex, Improvement.Type type, TechTree techTree) {
-        // techTree используется только для проверки в старом коде, но мы используем регистры
         return improvementManager.startImprovement(hex, type);
     }
 
@@ -319,12 +297,6 @@ public class City {
         return improvementManager.hasCompletedImprovement(hex);
     }
 
-    // ========================================================================
-    // Методы районов (делегирование)
-    // ========================================================================
-
-
-
     public boolean startDistrict(District.Type type, Hex hex, TechTree techTree) {
         return improvementManager.startDistrict(type, hex);
     }
@@ -336,10 +308,6 @@ public class City {
     public void addDistrictToQueue(District district) {
         improvementManager.addDistrictToQueue(district);
     }
-
-    // ========================================================================
-    // Методы центральных улучшений (делегирование)
-    // ========================================================================
 
     public boolean canBuildCenterImprovement(String name, TechTree techTree) {
         return improvementManager.canBuildCenterImprovement(name);
@@ -379,14 +347,11 @@ public class City {
     }
 
     public String getImprovementAvailability(Improvement.Type type, TechTree techTree) {
-        // Используем регистры, но для обратной совместимости оставим проверку через менеджер
         if (!improvementManager.canBuildImprovement(null, type)) {
-            // Не можем проверить конкретную клетку, поэтому проверим наличие доступных
             List<Hex> tiles = getAvailableTilesForImprovement(type);
             if (tiles.isEmpty()) {
                 return "Нет подходящих клеток в территории города";
             }
-            // Если доступны, значит проблема в технологии или рабочих
             ImprovementData data = improvementManager.getImprovementRegistry().get(type);
             if (data != null && !data.isTechAvailable(new TechRegistry(techTree))) {
                 return "Требуется технология: " + data.getRequiredTech();
@@ -430,10 +395,6 @@ public class City {
         territoryManager.checkFreshWater();
     }
 
-    // ========================================================================
-    // Производственные методы
-    // ========================================================================
-
     public void addUnit(String type) {
         productionManager.addUnit(type);
     }
@@ -467,7 +428,7 @@ public class City {
     }
 
     // ========================================================================
-    // Сброс (для новой игры)
+    // Сброс
     // ========================================================================
 
     public void reset() {

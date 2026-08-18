@@ -31,13 +31,11 @@ public class TopPanelManager {
         this.topPanel = createTopPanel();
     }
 
-    // Геттеры компонентов
     public HBox getTopPanel() { return topPanel; }
     public Label getTurnLabel() { return turnLabel; }
     public Label getStatusLabel() { return statusLabel; }
     public Button getEndTurnButton() { return endTurnButton; }
 
-    // Обновления
     public void updateTurn(int turn) {
         turnLabel.setText("Ход: " + turn);
     }
@@ -82,12 +80,10 @@ public class TopPanelManager {
             legitimacyProgressBar.setVisible(false);
         }
 
-        // Кнопка правительства появляется после изучения "Вождество"
-        boolean govUnlocked = controller.isGovernmentUnlocked();
-        govButton.setVisible(govUnlocked);
+        // Кнопка правительства всегда видна
+        govButton.setVisible(true);
     }
 
-    // Создание верхней панели
     private HBox createTopPanel() {
         HBox panel = new HBox(15);
         panel.setPadding(new Insets(8, 15, 8, 15));
@@ -135,15 +131,15 @@ public class TopPanelManager {
         endTurnButton.setStyle("-fx-font-size: 14px; -fx-background-color: #4CAF50; -fx-text-fill: white;");
         endTurnButton.setOnAction(e -> controller.endTurn());
 
-        // Кнопка правительства
+        // Кнопка правительства всегда видна, но клик проверяет наличие "Вождества"
         govButton = new Button("⚖️ Правительство");
         govButton.setStyle("-fx-font-size: 12px; -fx-background-color: #4a5a7a; -fx-text-fill: white;");
-        govButton.setVisible(false);
+        govButton.setVisible(true);
         govButton.setOnAction(e -> {
-            if (controller.isGovernmentUnlocked()) {
+            if (controller.isLegitimacyUnlocked()) {
                 uiManager.showGovernmentOverlay();
             } else {
-                controller.updateStatus("Изучите 'Вождество' для доступа.");
+                controller.updateStatus("Панель правительства станет доступна после изучения 'Вождество'.");
             }
         });
 
@@ -155,7 +151,6 @@ public class TopPanelManager {
                 endTurnButton
         );
 
-        // Скрываем ресурсы, которые ещё не открыты
         treasuryLabel.setVisible(false);
         pietyLabel.setVisible(false);
 

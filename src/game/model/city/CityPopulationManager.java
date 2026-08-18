@@ -1,10 +1,5 @@
 package game.model.city;
 
-import game.model.city.City;
-
-/**
- * Управление населением города: численность, счастье, изменение населения, голод.
- */
 public class CityPopulationManager {
 
     private final City city;
@@ -23,17 +18,13 @@ public class CityPopulationManager {
     }
 
     // ========================================================================
-    // Геттеры
+    // Геттеры и сеттеры
     // ========================================================================
 
     public int getPopulation() { return population; }
     public int getHappiness() { return happiness; }
     public int getPopulationChange() { return populationChange; }
     public boolean isStarving() { return isStarving; }
-
-    // ========================================================================
-    // Сеттеры (с валидацией)
-    // ========================================================================
 
     public void setPopulation(int population) {
         this.population = Math.max(0, population);
@@ -44,7 +35,7 @@ public class CityPopulationManager {
     }
 
     // ========================================================================
-    // Обновление населения на основе еды
+    // Обновление населения
     // ========================================================================
 
     public void updatePopulation(int totalFood) {
@@ -58,13 +49,12 @@ public class CityPopulationManager {
         if (newPop < 0) newPop = 0;
         populationChange = (int)growth;
         population = newPop;
-
         isStarving = (surplus < 0);
         updateHappiness();
     }
 
     // ========================================================================
-    // Обновление счастья (внутреннее, вызывается из updatePopulation)
+    // Обновление счастья
     // ========================================================================
 
     private void updateHappiness() {
@@ -86,7 +76,7 @@ public class CityPopulationManager {
     }
 
     // ========================================================================
-    // Сброс для новой игры
+    // Сброс
     // ========================================================================
 
     public void reset(int initialPopulation, int initialHappiness) {

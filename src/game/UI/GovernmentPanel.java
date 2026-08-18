@@ -2,6 +2,7 @@ package game.UI;
 
 import game.controller.GameController;
 import game.controller.GovernmentManager;
+import game.model.government.InterestGroup;
 import game.model.government.Law;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -12,6 +13,7 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.ArcType;
 import javafx.scene.text.Font;
+import javafx.scene.text.TextAlignment;
 
 import java.util.List;
 import java.util.Map;
@@ -22,7 +24,6 @@ public class GovernmentPanel {
     private final GovernmentManager govManager;
     private final VBox panel;
 
-    // Левая часть (списки)
     private final VBox leftBox;
     private final Label govLabel;
     private final ProgressBar legitimacyBar;
@@ -33,69 +34,131 @@ public class GovernmentPanel {
     private final ListView<String> unavailableLawsListView;
     private final Button adoptButton;
     private final Button repealButton;
+    private final Label bonusSummaryLabel;
 
-    // Правая часть (политический процесс)
-    private final VBox rightBox;
+    private final VBox centerBox;
     private final Label processTitle;
     private final Label processLawName;
     private final Label processTurns;
     private final Label processChance;
     private final Canvas processCanvas;
+    private final Label processStatusLabel;
+
+    private final VBox rightBox;
+    private final Label groupsTitle;
+    private final VBox groupsContainer;
+
+    private final VBox bottomBox;
+    private final Canvas radarCanvas;
+    private final Label radarTitle;
 
     public GovernmentPanel(GameController controller) {
         this.controller = controller;
         this.govManager = controller.getGovernmentManager();
 
-        // Левая часть
         this.leftBox = new VBox(6);
         this.leftBox.setAlignment(Pos.TOP_LEFT);
         this.leftBox.setPadding(new Insets(5));
+        leftBox.setPrefWidth(320);
+        leftBox.setMinWidth(280);
 
-        // Правая часть
-        this.rightBox = new VBox(10);
-        this.rightBox.setAlignment(Pos.CENTER);
-        this.rightBox.setPadding(new Insets(10));
-        this.rightBox.setStyle("-fx-background-color: rgba(0,0,0,0.3); -fx-background-radius: 8;");
-        this.rightBox.setPrefWidth(200);
+        this.centerBox = new VBox(10);
+        this.centerBox.setAlignment(Pos.TOP_CENTER);
+        this.centerBox.setPadding(new Insets(10));
+        this.centerBox.setStyle("-fx-background-color: rgba(0,0,0,0.2); -fx-background-radius: 8;");
+        this.centerBox.setPrefWidth(220);
+        this.centerBox.setMinWidth(200);
 
-        // Инициализация компонентов
+        this.rightBox = new VBox(8);
+        this.rightBox.setAlignment(Pos.TOP_LEFT);
+        this.rightBox.setPadding(new Insets(5));
+        this.rightBox.setPrefWidth(450);
+        this.rightBox.setMinWidth(380);
+
+        this.bottomBox = new VBox(5);
+        this.bottomBox.setAlignment(Pos.CENTER);
+        this.bottomBox.setPadding(new Insets(10));
+        this.bottomBox.setStyle("-fx-background-color: rgba(0,0,0,0.2); -fx-background-radius: 8;");
+        this.bottomBox.setPrefWidth(Double.MAX_VALUE);
+
+        // ---- Левая колонка ----
         govLabel = new Label("Форма правления: Вождество");
         govLabel.setTextFill(Color.LIGHTYELLOW);
         govLabel.setStyle("-fx-font-size: 16px;");
+        govLabel.setWrapText(true);
 
-        // Легитимность
         HBox legitimacyBox = new HBox(10);
         legitimacyBox.setAlignment(Pos.CENTER_LEFT);
         Label legLabel = new Label("Легитимность:");
         legLabel.setTextFill(Color.WHITE);
         legLabel.setStyle("-fx-font-size: 13px;");
+        legLabel.setWrapText(true);
         legitimacyBar = new ProgressBar(0.5);
-        legitimacyBar.setPrefWidth(200);
+        legitimacyBar.setPrefWidth(180);
         legitimacyBar.setMaxHeight(16);
         legitimacyValueLabel = new Label("50/100");
         legitimacyValueLabel.setTextFill(Color.WHITE);
         legitimacyValueLabel.setStyle("-fx-font-size: 13px;");
+        legitimacyValueLabel.setWrapText(true);
         legitimacyBox.getChildren().addAll(legLabel, legitimacyBar, legitimacyValueLabel);
 
-        // Факторы (компактный список)
+        bonusSummaryLabel = new Label("Нет активных законов");
+        bonusSummaryLabel.setTextFill(Color.LIGHTGREEN);
+        bonusSummaryLabel.setStyle("-fx-font-size: 12px;");
+        bonusSummaryLabel.setWrapText(true);
+
         factorListView = new ListView<>();
         factorListView.setPrefHeight(80);
         factorListView.setStyle("-fx-control-inner-background: #2a2a3a; -fx-text-fill: white; -fx-font-size: 11px;");
+        factorListView.setCellFactory(list -> new ListCell<String>() {
+            private final Label label = new Label();
+            { label.setWrapText(true); label.setStyle("-fx-text-fill: white; -fx-font-size: 11px;"); setGraphic(label); }
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                label.setText(empty || item == null ? null : item);
+            }
+        });
 
-        // Списки законов (уменьшенная высота)
         activeLawsListView = new ListView<>();
-        activeLawsListView.setPrefHeight(80);
+        activeLawsListView.setPrefHeight(100);
         activeLawsListView.setStyle("-fx-control-inner-background: #2a2a3a; -fx-text-fill: white; -fx-font-size: 11px;");
+        activeLawsListView.setCellFactory(list -> new ListCell<String>() {
+            private final Label label = new Label();
+            { label.setWrapText(true); label.setStyle("-fx-text-fill: lightgreen; -fx-font-size: 11px;"); setGraphic(label); }
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                label.setText(empty || item == null ? null : item);
+            }
+        });
 
         availableLawsListView = new ListView<>();
-        availableLawsListView.setPrefHeight(80);
+        availableLawsListView.setPrefHeight(100);
         availableLawsListView.setStyle("-fx-control-inner-background: #2a2a3a; -fx-text-fill: white; -fx-font-size: 11px;");
+        availableLawsListView.setCellFactory(list -> new ListCell<String>() {
+            private final Label label = new Label();
+            { label.setWrapText(true); label.setStyle("-fx-text-fill: lightyellow; -fx-font-size: 11px;"); setGraphic(label); }
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                label.setText(empty || item == null ? null : item);
+            }
+        });
 
         unavailableLawsListView = new ListView<>();
         unavailableLawsListView.setPrefHeight(80);
         unavailableLawsListView.setStyle("-fx-control-inner-background: #2a2a3a; -fx-text-fill: white; -fx-font-size: 11px;");
+        unavailableLawsListView.setCellFactory(list -> new ListCell<String>() {
+            private final Label label = new Label();
+            { label.setWrapText(true); label.setStyle("-fx-text-fill: gray; -fx-font-size: 11px;"); setGraphic(label); }
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                label.setText(empty || item == null ? null : item);
+            }
+        });
 
-        // Кнопки (без кнопки "Закрыть")
         HBox buttonBox = new HBox(8);
         buttonBox.setAlignment(Pos.CENTER);
         adoptButton = new Button("✅ Принять");
@@ -106,77 +169,114 @@ public class GovernmentPanel {
         repealButton.setOnAction(e -> repealSelectedLaw());
         buttonBox.getChildren().addAll(adoptButton, repealButton);
 
-        // Собираем левую часть
         leftBox.getChildren().addAll(
-                govLabel,
-                legitimacyBox,
-                new Label("Факторы:"),
-                factorListView,
-                new Label("Принятые:"),
-                activeLawsListView,
-                new Label("Доступные:"),
-                availableLawsListView,
-                new Label("Недоступные:"),
-                unavailableLawsListView,
+                govLabel, legitimacyBox, bonusSummaryLabel,
+                new Label("Факторы легитимности:"), factorListView,
+                new Label("Принятые законы:"), activeLawsListView,
+                new Label("Доступные законы:"), availableLawsListView,
+                new Label("Временно недоступные (требования):"), unavailableLawsListView,
                 buttonBox
         );
 
-        // Правая часть – политический процесс
-        processTitle = new Label("⚖️ ПРОЦЕСС");
+        // ---- Средняя колонка ----
+        processTitle = new Label("⚖️ ПОЛИТИЧЕСКИЙ ПРОЦЕСС");
         processTitle.setTextFill(Color.WHITE);
         processTitle.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
+        processTitle.setTextAlignment(TextAlignment.CENTER);
+        processTitle.setWrapText(true);
 
         processLawName = new Label("—");
         processLawName.setTextFill(Color.LIGHTYELLOW);
         processLawName.setStyle("-fx-font-size: 12px;");
+        processLawName.setWrapText(true);
 
         processTurns = new Label("—");
         processTurns.setTextFill(Color.LIGHTGRAY);
         processTurns.setStyle("-fx-font-size: 12px;");
+        processTurns.setWrapText(true);
 
         processChance = new Label("—");
         processChance.setTextFill(Color.LIGHTCYAN);
         processChance.setStyle("-fx-font-size: 12px;");
+        processChance.setWrapText(true);
+
+        processStatusLabel = new Label("Ожидание");
+        processStatusLabel.setTextFill(Color.LIGHTGRAY);
+        processStatusLabel.setStyle("-fx-font-size: 13px; -fx-font-weight: bold;");
+        processStatusLabel.setWrapText(true);
 
         processCanvas = new Canvas(80, 80);
 
-        rightBox.getChildren().addAll(
-                processTitle,
-                processLawName,
-                processCanvas,
-                processTurns,
-                processChance
+        centerBox.getChildren().addAll(
+                processTitle, processLawName, processCanvas,
+                processTurns, processChance, processStatusLabel
         );
-        rightBox.setVisible(false);
+        centerBox.setVisible(true);
 
-        // Основная панель (HBox)
-        HBox mainBox = new HBox(20);
-        mainBox.setAlignment(Pos.CENTER);
-        mainBox.setPadding(new Insets(15));
-        mainBox.getChildren().addAll(leftBox, rightBox);
+        // ---- Правая колонка (группы) ----
+        groupsTitle = new Label("ГРУППЫ ИНТЕРЕСОВ");
+        groupsTitle.setTextFill(Color.WHITE);
+        groupsTitle.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-underline: true;");
+        groupsTitle.setWrapText(true);
 
-        // Заголовок сверху
-        Label title = new Label("⚖️ ПРАВИТЕЛЬСТВО");
+        groupsContainer = new VBox(12);
+        groupsContainer.setPadding(new Insets(5, 0, 0, 0));
+
+        rightBox.getChildren().addAll(groupsTitle, groupsContainer);
+
+        // ---- Нижняя панель (радар) ----
+        radarTitle = new Label("УСТРЕМЛЕНИЯ ГРУПП ИНТЕРЕСОВ (лояльность)");
+        radarTitle.setTextFill(Color.WHITE);
+        radarTitle.setStyle("-fx-font-size: 13px; -fx-font-weight: bold;");
+        radarTitle.setWrapText(true);
+        radarCanvas = new Canvas(280, 200);
+        bottomBox.getChildren().addAll(radarTitle, radarCanvas);
+        bottomBox.setVisible(true);
+
+        // ---- Сетка ----
+        GridPane mainGrid = new GridPane();
+        mainGrid.setHgap(15);
+        mainGrid.setVgap(10);
+        mainGrid.setPadding(new Insets(10));
+        mainGrid.setAlignment(Pos.TOP_CENTER);
+
+        mainGrid.add(leftBox, 0, 0);
+        mainGrid.add(centerBox, 1, 0);
+        mainGrid.add(rightBox, 2, 0);
+        mainGrid.add(bottomBox, 0, 1, 3, 1);
+
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setPercentWidth(30);
+        ColumnConstraints col2 = new ColumnConstraints();
+        col2.setPercentWidth(20);
+        ColumnConstraints col3 = new ColumnConstraints();
+        col3.setPercentWidth(50);
+        mainGrid.getColumnConstraints().addAll(col1, col2, col3);
+
+        RowConstraints row1 = new RowConstraints();
+        row1.setPercentHeight(70);
+        RowConstraints row2 = new RowConstraints();
+        row2.setPercentHeight(30);
+        mainGrid.getRowConstraints().addAll(row1, row2);
+
+        Label title = new Label("⚖️ УПРАВЛЕНИЕ ГОСУДАРСТВОМ");
         title.setTextFill(Color.WHITE);
         title.setStyle("-fx-font-size: 22px; -fx-font-weight: bold;");
+        title.setWrapText(true);
         VBox topBox = new VBox(5);
         topBox.setAlignment(Pos.CENTER);
         topBox.getChildren().add(title);
 
-        // Финал
         panel = new VBox(10);
         panel.setStyle("-fx-background-color: rgba(20,20,30,0.95); -fx-padding: 15; -fx-background-radius: 10;");
         panel.setMaxWidth(Double.MAX_VALUE);
         panel.setMaxHeight(Double.MAX_VALUE);
-        panel.setPrefWidth(900);
-        panel.setPrefHeight(600);
-        panel.getChildren().addAll(topBox, mainBox);
+        panel.setPrefWidth(1200);
+        panel.setPrefHeight(800);
+        panel.getChildren().addAll(topBox, mainGrid);
     }
 
-    // ========================================================================
-    // Вспомогательные методы
-    // ========================================================================
-
+    // ---- Действия с законами ----
     private void adoptSelectedLaw() {
         String selected = availableLawsListView.getSelectionModel().getSelectedItem();
         if (selected == null) return;
@@ -219,30 +319,43 @@ public class GovernmentPanel {
         return sb.toString().trim();
     }
 
+    // ---- Обновление панели ----
     public void updatePanel() {
-        // Форма правления
+        boolean isGovernmentUnlocked = controller.isLegitimacyUnlocked();
+
+        // Левая колонка (всегда видна)
         String gov = govManager.getCurrentGovernment();
         govLabel.setText("Форма правления: " + gov);
 
-        // Легитимность (исправлена опечатка)
         int legitimacy = controller.getGameState().getLegitimacy();
         double progress = legitimacy / 100.0;
         legitimacyBar.setProgress(progress);
         legitimacyValueLabel.setText(legitimacy + "/100");
-        String color;
-        if (legitimacy < 30) color = "#e74c3c";
-        else if (legitimacy < 70) color = "#f1c40f";
-        else color = "#2ecc71";
+        String color = legitimacy < 30 ? "#e74c3c" : legitimacy < 70 ? "#f1c40f" : "#2ecc71";
         legitimacyBar.setStyle("-fx-accent: " + color + ";");
+
+        int totalSci = govManager.getTotalScienceBonus();
+        int totalCult = govManager.getTotalCultureBonus();
+        int totalProd = govManager.getTotalProductionBonus();
+        int totalFaith = govManager.getTotalFaithBonus();
+        int totalHap = govManager.getTotalHappinessBonus();
+        int totalLeg = govManager.getTotalLegitimacyBonus();
+
+        StringBuilder bonusText = new StringBuilder("Суммарные бонусы законов: ");
+        if (totalSci != 0) bonusText.append("наука ").append(totalSci > 0 ? "+" : "").append(totalSci).append(" ");
+        if (totalCult != 0) bonusText.append("культура ").append(totalCult > 0 ? "+" : "").append(totalCult).append(" ");
+        if (totalProd != 0) bonusText.append("произв. ").append(totalProd > 0 ? "+" : "").append(totalProd).append(" ");
+        if (totalFaith != 0) bonusText.append("вера ").append(totalFaith > 0 ? "+" : "").append(totalFaith).append(" ");
+        if (totalHap != 0) bonusText.append("счастье ").append(totalHap > 0 ? "+" : "").append(totalHap).append(" ");
+        if (totalLeg != 0) bonusText.append("легит. ").append(totalLeg > 0 ? "+" : "").append(totalLeg).append(" ");
+        bonusSummaryLabel.setText(bonusText.toString().trim().isEmpty() ? "Нет активных законов" : bonusText.toString());
 
         // Факторы
         List<String> factors = controller.getLegitimacyFactors();
         factorListView.getItems().clear();
-        if (factors.isEmpty()) {
-            factorListView.getItems().add("Нет данных");
-        } else {
-            factorListView.getItems().addAll(factors);
-        }
+        if (factors.isEmpty()) factorListView.getItems().add("Нет данных");
+        else factorListView.getItems().addAll(factors);
+
         Map<String, Integer> mods = govManager.getLegitimacyModifiers();
         if (!mods.isEmpty()) {
             factorListView.getItems().add("--- СОБЫТИЯ ---");
@@ -252,54 +365,38 @@ public class GovernmentPanel {
             }
         }
 
-        // Активные законы
+        // Законы
         List<Law> active = govManager.getActiveLaws();
         activeLawsListView.getItems().clear();
-        if (active.isEmpty()) {
-            activeLawsListView.getItems().add("Нет принятых законов");
-        } else {
-            for (Law law : active) {
-                activeLawsListView.getItems().add("✅ " + law.getName() + " (" + getBonusString(law) + ")");
-            }
-        }
+        if (active.isEmpty()) activeLawsListView.getItems().add("Нет принятых законов");
+        else for (Law law : active) activeLawsListView.getItems().add("✅ " + law.getName() + " (" + getBonusString(law) + ")");
 
-        // Доступные законы
         List<Law> available = govManager.getAvailableLaws();
         availableLawsListView.getItems().clear();
         if (available.isEmpty()) {
-            if (govManager.isPoliticalProcessActive()) {
-                availableLawsListView.getItems().add("⏳ Процесс идёт...");
-            } else {
-                availableLawsListView.getItems().add("Нет доступных законов");
-            }
+            if (govManager.isPoliticalProcessActive()) availableLawsListView.getItems().add("⏳ Процесс идёт...");
+            else availableLawsListView.getItems().add("Нет доступных законов");
         } else {
-            for (Law law : available) {
-                availableLawsListView.getItems().add(law.getName() + " (" + getBonusString(law) + ")");
-            }
+            for (Law law : available) availableLawsListView.getItems().add(law.getName() + " (" + getBonusString(law) + ")");
         }
 
-        // Временно недоступные
         List<Law> unavailable = govManager.getTemporarilyUnavailableLaws();
         unavailableLawsListView.getItems().clear();
-        if (unavailable.isEmpty()) {
-            unavailableLawsListView.getItems().add("Нет временно недоступных законов");
-        } else {
+        if (unavailable.isEmpty()) unavailableLawsListView.getItems().add("Нет временно недоступных законов");
+        else {
             for (Law law : unavailable) {
                 String reason = "";
-                if (govManager.getRepealCooldown(law) > 0) {
-                    reason = " (перезарядка " + govManager.getRepealCooldown(law) + " ходов)";
-                } else if (law.getRequiredTech() != null && !controller.getTechTree().isResearched(law.getRequiredTech())) {
+                if (govManager.getRepealCooldown(law) > 0) reason = " (перезарядка " + govManager.getRepealCooldown(law) + " ходов)";
+                else if (law.getRequiredTech() != null && !controller.getTechTree().isResearched(law.getRequiredTech()))
                     reason = " (требуется технология: " + law.getRequiredTech() + ")";
-                } else if (law.getRequiredGovernment() != null && !law.getRequiredGovernment().equals(gov)) {
+                else if (law.getRequiredGovernment() != null && !law.getRequiredGovernment().equals(gov))
                     reason = " (требуется правление: " + law.getRequiredGovernment() + ")";
-                }
                 unavailableLawsListView.getItems().add("🔒 " + law.getName() + reason);
             }
         }
 
-        // Политический процесс
+        // ---- Средняя колонка ----
         if (govManager.isPoliticalProcessActive()) {
-            rightBox.setVisible(true);
             Law pending = govManager.getPendingLaw();
             int current = govManager.getPoliticalProcessTurns();
             int max = govManager.getPoliticalProcessMaxTurns();
@@ -318,9 +415,150 @@ public class GovernmentPanel {
                 default: break;
             }
             processChance.setText("Шанс: " + (int)(chance * 100) + "%");
+            processStatusLabel.setText("Активен");
+            processStatusLabel.setTextFill(Color.GREEN);
             drawProgressCircle(processCanvas, procProgress);
         } else {
-            rightBox.setVisible(false);
+            processLawName.setText("—");
+            processTurns.setText("Ожидание");
+            processChance.setText("—");
+            processStatusLabel.setText("Неактивен");
+            processStatusLabel.setTextFill(Color.GRAY);
+            drawProgressCircle(processCanvas, 0);
+        }
+
+        // ---- Группы и радар – ТОЛЬКО ЕСЛИ ОТКРЫТО "ВОЖДЕСТВО" ----
+        boolean showGroups = isGovernmentUnlocked;
+        rightBox.setVisible(showGroups);
+        bottomBox.setVisible(showGroups);
+
+        if (showGroups) {
+            updateInterestGroups();
+            updateRadarChart();
+        }
+    }
+
+    private void updateInterestGroups() {
+        groupsContainer.getChildren().clear();
+        List<InterestGroup> groups = govManager.getInterestGroups();
+        for (InterestGroup group : groups) {
+            VBox groupBox = new VBox(6);
+            groupBox.setStyle("-fx-background-color: rgba(50,50,70,0.6); -fx-padding: 10; -fx-background-radius: 8;");
+            groupBox.setAlignment(Pos.TOP_LEFT);
+            groupBox.setPrefWidth(400);
+
+            Label nameLabel = new Label(group.getName());
+            nameLabel.setTextFill(Color.LIGHTYELLOW);
+            nameLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+            nameLabel.setWrapText(true);
+
+            HBox loyaltyRow = new HBox(10);
+            loyaltyRow.setAlignment(Pos.CENTER_LEFT);
+            ProgressBar loyaltyBar = new ProgressBar(group.getLoyalty() / 100.0);
+            loyaltyBar.setPrefWidth(250);
+            loyaltyBar.setMaxHeight(14);
+            String barColor = group.getLoyalty() < 30 ? "#e74c3c" : group.getLoyalty() < 70 ? "#f1c40f" : "#2ecc71";
+            loyaltyBar.setStyle("-fx-accent: " + barColor + ";");
+
+            Label loyaltyLabel = new Label("Лояльность: " + group.getLoyalty() + "/100");
+            loyaltyLabel.setTextFill(Color.LIGHTGRAY);
+            loyaltyLabel.setStyle("-fx-font-size: 13px;");
+            loyaltyLabel.setWrapText(true);
+            loyaltyRow.getChildren().addAll(loyaltyBar, loyaltyLabel);
+
+            Tooltip tooltip = new Tooltip();
+            tooltip.setStyle("-fx-font-size: 12px; -fx-background-color: #333; -fx-text-fill: white; -fx-padding: 10;");
+            StringBuilder ttText = new StringBuilder();
+            ttText.append(group.getDescription()).append("\n\n");
+            ttText.append("Требования:\n");
+            for (String demand : group.getDemands()) {
+                ttText.append("• ").append(demand).append("\n");
+            }
+            ttText.append("\nЗадания:\n");
+            for (String task : group.getTasks()) {
+                ttText.append("• ").append(task).append("\n");
+            }
+            tooltip.setText(ttText.toString());
+
+            StackPane namePane = new StackPane(nameLabel);
+            Tooltip.install(namePane, tooltip);
+            namePane.setCursor(javafx.scene.Cursor.HAND);
+
+            VBox tasksBox = new VBox(3);
+            tasksBox.setPadding(new Insets(4, 0, 0, 12));
+            for (String task : group.getTasks()) {
+                Label taskLabel = new Label("• " + task);
+                taskLabel.setTextFill(Color.LIGHTBLUE);
+                taskLabel.setStyle("-fx-font-size: 11px;");
+                taskLabel.setWrapText(true);
+                tasksBox.getChildren().add(taskLabel);
+            }
+
+            groupBox.getChildren().addAll(namePane, loyaltyRow, tasksBox);
+            groupsContainer.getChildren().add(groupBox);
+        }
+    }
+
+    private void updateRadarChart() {
+        GraphicsContext gc = radarCanvas.getGraphicsContext2D();
+        double w = radarCanvas.getWidth();
+        double h = radarCanvas.getHeight();
+        double centerX = w / 2;
+        double centerY = h / 2;
+        double radius = Math.min(w, h) * 0.4;
+
+        gc.clearRect(0, 0, w, h);
+
+        List<InterestGroup> groups = govManager.getInterestGroups();
+        int numAxes = groups.size();
+        if (numAxes == 0) {
+            gc.setFill(Color.LIGHTGRAY);
+            gc.setFont(Font.font(12));
+            gc.fillText("Нет групп", centerX - 30, centerY + 5);
+            return;
+        }
+
+        // Сетка
+        for (int ring = 1; ring <= 3; ring++) {
+            double r = radius * ring / 3.0;
+            gc.setStroke(Color.rgb(100, 100, 120, 0.3));
+            gc.strokeOval(centerX - r, centerY - r, 2 * r, 2 * r);
+        }
+        for (int i = 0; i < numAxes; i++) {
+            double angle = Math.toRadians(90 - i * (360.0 / numAxes));
+            double x = centerX + radius * Math.cos(angle);
+            double y = centerY - radius * Math.sin(angle);
+            gc.setStroke(Color.rgb(100, 100, 120, 0.5));
+            gc.setLineWidth(1);
+            gc.strokeLine(centerX, centerY, x, y);
+        }
+
+        // Данные
+        double[] xPoints = new double[numAxes];
+        double[] yPoints = new double[numAxes];
+        for (int i = 0; i < numAxes; i++) {
+            InterestGroup group = groups.get(i);
+            double val = Math.max(0, Math.min(1, group.getLoyalty() / 100.0));
+            double angle = Math.toRadians(90 - i * (360.0 / numAxes));
+            double r = radius * val;
+            xPoints[i] = centerX + r * Math.cos(angle);
+            yPoints[i] = centerY - r * Math.sin(angle);
+
+            double labelX = centerX + (radius + 15) * Math.cos(angle);
+            double labelY = centerY - (radius + 15) * Math.sin(angle);
+            gc.setFill(Color.LIGHTGRAY);
+            gc.setFont(Font.font(10));
+            gc.fillText(group.getName(), labelX - 20, labelY + 4);
+        }
+
+        gc.setFill(Color.rgb(100, 200, 255, 0.2));
+        gc.fillPolygon(xPoints, yPoints, numAxes);
+        gc.setStroke(Color.rgb(100, 200, 255, 0.8));
+        gc.setLineWidth(2);
+        gc.strokePolygon(xPoints, yPoints, numAxes);
+        for (int i = 0; i < numAxes; i++) {
+            gc.setFill(Color.rgb(100, 200, 255, 1.0));
+            gc.fillOval(xPoints[i] - 4, yPoints[i] - 4, 8, 8);
         }
     }
 
@@ -354,12 +592,9 @@ public class GovernmentPanel {
     public VBox getPanel() { return panel; }
 
     public void show() {
-        if (!controller.isGovernmentUnlocked()) {
+        if (!controller.isLegitimacyUnlocked()) {
             controller.updateStatus("Панель правительства станет доступна после изучения 'Вождество'.");
             return;
-        }
-        if (controller.getAdvisor() != null) {
-            controller.getAdvisor().showGovernmentPanelTutorial();
         }
         updatePanel();
         panel.setVisible(true);

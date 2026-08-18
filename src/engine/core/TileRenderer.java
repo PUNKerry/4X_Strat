@@ -12,7 +12,7 @@ import javafx.scene.text.Font;
 
 public class TileRenderer {
 
-    private  HexGrid hexGrid;
+    private HexGrid hexGrid;
     private final FogOfWar fogOfWar;
     private final GameController controller;
     private double canvasWidth = 0;
@@ -185,8 +185,7 @@ public class TileRenderer {
             }
         }
 
-        // --- Улучшения ---
-        // --- Улучшения ---
+        // --- Улучшения (единственный блок) ---
         Improvement improvement = tile.getImprovement();
         if (improvement != null && (fogState != FogOfWar.State.UNKNOWN || cityView)) {
             double size = hexGrid.getHexSize();
@@ -226,15 +225,12 @@ public class TileRenderer {
                     gc.setStroke(Color.rgb(80, 80, 80));
                     gc.setLineWidth(1.5);
                     gc.strokeOval(cx - size * 0.25, cy - size * 0.25, size * 0.5, size * 0.5);
-                }
-                // в блоке отрисовки улучшений
-                else if (improvement.getType() == Improvement.Type.FISHING) {
+                } else if (improvement.getType() == Improvement.Type.FISHING) {
                     gc.setFill(Color.rgb(0, 150, 200, 0.6));
                     gc.fillOval(cx - size * 0.3, cy - size * 0.3, size * 0.6, size * 0.6);
                     gc.setStroke(Color.rgb(0, 100, 150));
                     gc.setLineWidth(2);
                     gc.strokeOval(cx - size * 0.3, cy - size * 0.3, size * 0.6, size * 0.6);
-                    // Можно нарисовать рыбу как символ
                     gc.setFill(Color.WHITE);
                     gc.setFont(Font.font(size * 0.4));
                     gc.fillText("🐟", cx - size * 0.15, cy + size * 0.15);

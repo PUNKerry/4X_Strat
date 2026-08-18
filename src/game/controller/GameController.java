@@ -352,7 +352,36 @@ public class GameController {
         info.faith = 0;
         info.culture = 0;
         info.resources = "Нет";
-        info.improvements = "Нет";
+
+        // Улучшения
+        Improvement imp = tile.getImprovement();
+        if (imp != null) {
+            if (imp.isUnderConstruction()) {
+                info.improvements = imp.getType().name() + " (строится)";
+            } else {
+                info.improvements = imp.getType().name();
+            }
+        } else {
+            info.improvements = "Нет";
+        }
+        // Район
+        District district = tile.getDistrict();
+        if (district != null) {
+            if (info.improvements.equals("Нет")) {
+                info.improvements = "Район: " + district.getName();
+            } else {
+                info.improvements += " + Район: " + district.getName();
+            }
+        }
+        // Центр города
+        if (tile.isCityCenter()) {
+            if (info.improvements.equals("Нет")) {
+                info.improvements = "Центр города";
+            } else {
+                info.improvements += " (центр города)";
+            }
+        }
+
         return info;
     }
 

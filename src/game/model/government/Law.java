@@ -13,6 +13,8 @@ public class Law {
     private final int faithBonus;
     private boolean isActive;
 
+    // Конструктор с порядком: название, описание, тех, правительство,
+    // наука, культура, производство, счастье, легитимность, вера
     public Law(String name, String description, String requiredTech, String requiredGovernment,
                int scienceBonus, int cultureBonus, int productionBonus,
                int happinessBonus, int legitimacyBonus, int faithBonus) {
@@ -29,6 +31,7 @@ public class Law {
         this.isActive = false;
     }
 
+    // Геттеры
     public String getName() { return name; }
     public String getDescription() { return description; }
     public String getRequiredTech() { return requiredTech; }

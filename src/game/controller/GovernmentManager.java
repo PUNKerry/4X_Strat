@@ -1,5 +1,6 @@
 package game.controller;
 
+import game.model.government.InterestGroup;
 import game.model.government.Law;
 import game.model.registry.TechRegistry;
 
@@ -12,8 +13,11 @@ public class GovernmentManager {
     private String currentGovernment;
     private final List<Law> activeLaws;
     private final List<Law> allLaws;
-    private final Map<Law, Integer> repealedLaws; // закон -> ходов до восстановления
-    private final Map<String, Integer> legitimacyModifiers; // событие -> дельта
+    private final Map<Law, Integer> repealedLaws;
+    private final Map<String, Integer> legitimacyModifiers;
+
+    // Группы интересов – инициализируются с лояльностью 50
+    private final List<InterestGroup> interestGroups;
 
     // Политический процесс
     private Law pendingLaw = null;
@@ -30,7 +34,9 @@ public class GovernmentManager {
         this.allLaws = new ArrayList<>();
         this.repealedLaws = new HashMap<>();
         this.legitimacyModifiers = new HashMap<>();
+        this.interestGroups = new ArrayList<>();
         initLaws();
+        initInterestGroups();
     }
 
     private void initLaws() {
@@ -120,6 +126,19 @@ public class GovernmentManager {
                 0, 1, 0, 0, 2, 2));
     }
 
+    private void initInterestGroups() {
+        // Лояльность = 50 при создании
+        interestGroups.add(new InterestGroup("Старейшины",
+                "Мудрейшие члены общества, хранители традиций и законов. Ожидают уважения к обычаям и стабильности.",
+                50));
+        interestGroups.add(new InterestGroup("Воины",
+                "Защитники государства, сильные и дисциплинированные. Требуют сильной армии и военных реформ.",
+                50));
+        interestGroups.add(new InterestGroup("Ремесленники",
+                "Мастера и торговцы, создающие богатство. Хотят развития производства и свободной торговли.",
+                50));
+    }
+
     // ========================================================================
     // Геттеры
     // ========================================================================
@@ -128,19 +147,140 @@ public class GovernmentManager {
     public List<Law> getActiveLaws() { return new ArrayList<>(activeLaws); }
     public List<Law> getAllLaws() { return new ArrayList<>(allLaws); }
     public int getRepealCooldown(Law law) { return repealedLaws.getOrDefault(law, 0); }
+    public List<InterestGroup> getInterestGroups() { return new ArrayList<>(interestGroups); }
 
     public Law getPendingLaw() { return pendingLaw; }
     public int getPoliticalProcessTurns() { return politicalProcessTurns; }
     public int getPoliticalProcessMaxTurns() { return politicalProcessMaxTurns; }
     public boolean isPoliticalProcessActive() { return politicalProcessActive; }
     public String getPoliticalProcessStatus() { return politicalProcessStatus; }
+
     public Map<String, Integer> getLegitimacyModifiers() { return new HashMap<>(legitimacyModifiers); }
     public int getLegitimacyModifiersTotal() {
         return legitimacyModifiers.values().stream().mapToInt(Integer::intValue).sum();
     }
 
+    // Плоские бонусы от законов
+    public int getTotalScienceBonus() {
+        return activeLaws.stream().mapToInt(Law::getScienceBonus).sum();
+    }
+    public int getTotalCultureBonus() {
+        return activeLaws.stream().mapToInt(Law::getCultureBonus).sum();
+    }
+    public int getTotalProductionBonus() {
+        return activeLaws.stream().mapToInt(Law::getProductionBonus).sum();
+    }
+    public int getTotalHappinessBonus() {
+        return activeLaws.stream().mapToInt(Law::getHappinessBonus).sum();
+    }
+    public int getTotalLegitimacyBonus() {
+        return activeLaws.stream().mapToInt(Law::getLegitimacyBonus).sum();
+    }
+    public int getTotalFaithBonus() {
+        return activeLaws.stream().mapToInt(Law::getFaithBonus).sum();
+    }
+
     // ========================================================================
-    // Модификаторы легитимности (события)
+    // Реакция на действия игрока
+    // ========================================================================
+
+    public void onUnitTrained(String unitType) {
+        if (unitType.equals("warrior") || unitType.equals("archer") ||
+                unitType.equals("chariot") || unitType.equals("bronze_swordsman") ||
+                unitType.equals("horseman") || unitType.equals("battering_ram")) {
+            findGroup("Воины").ifPresent(g -> g.addLoyalty(2));
+        }
+    }
+
+    public void onImprovementBuilt(String improvementType) {
+        if (improvementType.equals("MINE") || improvementType.equals("LUMBERMILL") ||
+                improvementType.equals("QUARRY") || improvementType.equals("FARM")) {
+            findGroup("Ремесленники").ifPresent(g -> g.addLoyalty(2));
+        }
+        if (improvementType.equals("HOUSING") || improvementType.equals("PASTURE")) {
+            findGroup("Старейшины").ifPresent(g -> g.addLoyalty(1));
+        }
+    }
+
+    public void onTechResearched(String techName) {
+        if (techName.equals("Традиции") || techName.equals("Эпос") ||
+                techName.equals("Искусство") || techName.equals("Философия") ||
+                techName.equals("Вождество") || techName.equals("Право")) {
+            findGroup("Старейшины").ifPresent(g -> g.addLoyalty(3));
+        }
+        if (techName.equals("Лук и стрелы") || techName.equals("Колесо (раннее)") ||
+                techName.equals("Бронзовый сплав") || techName.equals("Одомашнивание лошади") ||
+                techName.equals("Осадное дело")) {
+            findGroup("Воины").ifPresent(g -> g.addLoyalty(3));
+        }
+        if (techName.equals("Металлургия меди") || techName.equals("Гончарство") ||
+                techName.equals("Стекло") || techName.equals("Математика")) {
+            findGroup("Ремесленники").ifPresent(g -> g.addLoyalty(3));
+        }
+    }
+
+    public void onCityFounded() {
+        for (InterestGroup g : interestGroups) {
+            g.addLoyalty(1);
+        }
+    }
+
+    public void onWarStarted() {
+        findGroup("Воины").ifPresent(g -> g.addLoyalty(5));
+        findGroup("Ремесленники").ifPresent(g -> g.addLoyalty(-3));
+        findGroup("Старейшины").ifPresent(g -> g.addLoyalty(-2));
+    }
+
+    public void onWarEnded() {
+        findGroup("Воины").ifPresent(g -> g.addLoyalty(-3));
+        findGroup("Ремесленники").ifPresent(g -> g.addLoyalty(3));
+        findGroup("Старейшины").ifPresent(g -> g.addLoyalty(2));
+    }
+
+    private Optional<InterestGroup> findGroup(String name) {
+        return interestGroups.stream().filter(g -> g.getName().equals(name)).findFirst();
+    }
+
+    // Влияние законов на группы
+    public void updateInterestGroupLoyalty(Law law) {
+        for (InterestGroup group : interestGroups) {
+            String name = group.getName();
+            int delta = 0;
+
+            if (name.equals("Старейшины")) {
+                delta += law.getLegitimacyBonus() * 2;
+                delta += law.getCultureBonus() * 1;
+                delta -= law.getProductionBonus() * 1;
+                if (law.getHappinessBonus() < 0) delta -= 2;
+            } else if (name.equals("Воины")) {
+                delta += law.getProductionBonus() * 2;
+                delta += law.getLegitimacyBonus() * 1;
+                if (law.getCultureBonus() > 0) delta -= 1;
+                if (law.getScienceBonus() > 0) delta += 1;
+            } else if (name.equals("Ремесленники")) {
+                delta += law.getScienceBonus() * 2;
+                delta += law.getProductionBonus() * 2;
+                delta -= law.getFaithBonus() * 1;
+                if (law.getName().contains("Налог")) delta -= 3;
+            }
+            group.addLoyalty(delta);
+        }
+    }
+
+    // Периодическое обновление лояльности (каждый ход)
+    public void updateInterestGroupsPeriodically() {
+        int legitimacy = controller.getGameState().getLegitimacy();
+        for (InterestGroup group : interestGroups) {
+            if (legitimacy < 30) {
+                group.addLoyalty(-1);
+            } else if (legitimacy > 70) {
+                group.addLoyalty(1);
+            }
+        }
+    }
+
+    // ========================================================================
+    // Модификаторы легитимности
     // ========================================================================
 
     public void addLegitimacyModifier(String event, int delta) {
@@ -152,13 +292,11 @@ public class GovernmentManager {
     }
 
     // ========================================================================
-    // Доступные законы (с учётом политического процесса)
+    // Доступные законы
     // ========================================================================
 
     public List<Law> getAvailableLaws() {
-        if (politicalProcessActive) {
-            return new ArrayList<>();
-        }
+        if (politicalProcessActive) return new ArrayList<>();
         List<Law> available = new ArrayList<>();
         for (Law law : allLaws) {
             if (activeLaws.contains(law)) continue;
@@ -196,7 +334,7 @@ public class GovernmentManager {
 
     public boolean startPoliticalProcess(Law law) {
         if (politicalProcessActive) {
-            controller.updateStatus("Политический процесс уже идёт. Дождитесь его завершения.");
+            controller.updateStatus("Политический процесс уже идёт.");
             return false;
         }
         if (activeLaws.contains(law)) {
@@ -204,7 +342,7 @@ public class GovernmentManager {
             return false;
         }
         if (repealedLaws.containsKey(law)) {
-            controller.updateStatus("Этот закон временно недоступен.");
+            controller.updateStatus("Закон временно недоступен.");
             return false;
         }
         if (law.getRequiredTech() != null && !techRegistry.isResearched(law.getRequiredTech())) {
@@ -252,6 +390,7 @@ public class GovernmentManager {
                 if (adoptLawDirect(pendingLaw)) {
                     politicalProcessStatus = "Принят";
                     controller.updateStatus("Закон '" + pendingLaw.getName() + "' принят!");
+                    updateInterestGroupLoyalty(pendingLaw);
                 } else {
                     politicalProcessStatus = "Провален (ошибка)";
                     controller.updateStatus("Ошибка при принятии закона.");
@@ -259,7 +398,7 @@ public class GovernmentManager {
             } else {
                 politicalProcessStatus = "Провален";
                 repealedLaws.put(pendingLaw, 3);
-                controller.updateStatus("Закон '" + pendingLaw.getName() + "' не прошёл. Он недоступен на 3 хода.");
+                controller.updateStatus("Закон '" + pendingLaw.getName() + "' не прошёл. Недоступен 3 хода.");
             }
 
             pendingLaw = null;
@@ -295,11 +434,14 @@ public class GovernmentManager {
         activeLaws.remove(law);
         law.setActive(false);
         repealedLaws.put(law, 10);
+        for (InterestGroup group : interestGroups) {
+            group.addLoyalty(-1);
+        }
         return true;
     }
 
     // ========================================================================
-    // Обновление таймеров (вызывается в конце хода)
+    // Обновление таймеров
     // ========================================================================
 
     public void updateRepealedLaws() {
@@ -316,35 +458,7 @@ public class GovernmentManager {
     }
 
     // ========================================================================
-    // Суммарные бонусы от законов
-    // ========================================================================
-
-    public int getTotalScienceBonus() {
-        return activeLaws.stream().mapToInt(Law::getScienceBonus).sum();
-    }
-
-    public int getTotalCultureBonus() {
-        return activeLaws.stream().mapToInt(Law::getCultureBonus).sum();
-    }
-
-    public int getTotalProductionBonus() {
-        return activeLaws.stream().mapToInt(Law::getProductionBonus).sum();
-    }
-
-    public int getTotalHappinessBonus() {
-        return activeLaws.stream().mapToInt(Law::getHappinessBonus).sum();
-    }
-
-    public int getTotalLegitimacyBonus() {
-        return activeLaws.stream().mapToInt(Law::getLegitimacyBonus).sum();
-    }
-
-    public int getTotalFaithBonus() {
-        return activeLaws.stream().mapToInt(Law::getFaithBonus).sum();
-    }
-
-    // ========================================================================
-    // Сброс
+    // Сброс (для новой игры)
     // ========================================================================
 
     public void reset() {
@@ -358,6 +472,10 @@ public class GovernmentManager {
         politicalProcessStatus = "";
         for (Law law : allLaws) {
             law.setActive(false);
+        }
+        // Сброс лояльности групп до 50
+        for (InterestGroup group : interestGroups) {
+            group.setLoyalty(50);
         }
     }
 }

@@ -204,7 +204,7 @@ public class TurnManager {
     }
 
     // ========================================================================
-    // Пересчёт доходов и легитимности
+    // Пересчёт доходов
     // ========================================================================
 
     void recalcIncome() {
@@ -221,7 +221,15 @@ public class TurnManager {
         sciencePerTurn = totalScience + totalFreeWorkers / 2;
         culturePerTurn = totalCulture + totalFreeWorkers / 2;
         faithPerTurn = totalFaith;
+
+        sciencePerTurn += controller.getGovernmentManager().getTotalScienceBonus();
+        culturePerTurn += controller.getGovernmentManager().getTotalCultureBonus();
+        faithPerTurn += controller.getGovernmentManager().getTotalFaithBonus();
     }
+
+    // ========================================================================
+    // Пересчёт легитимности
+    // ========================================================================
 
     void recalculateLegitimacy() {
         GameState gameState = controller.getGameState();
@@ -244,12 +252,19 @@ public class TurnManager {
         leg += culturePerTurn / 2;
         leg += controller.getGovernmentManager().getTotalLegitimacyBonus();
         leg += controller.getGovernmentManager().getLegitimacyModifiersTotal();
+
+        // ВЛИЯНИЕ ЛОЯЛЬНОСТИ ГРУПП НА ЛЕГИТИМНОСТЬ
+        double avgLoyalty = controller.getGovernmentManager().getInterestGroups().stream()
+                .mapToInt(g -> g.getLoyalty()).average().orElse(50);
+        int groupBonus = (int)((avgLoyalty - 50) / 5); // каждые 5 пунктов = ±1 легитимности
+        leg += groupBonus;
+
         leg = Math.min(100, Math.max(0, leg));
         gameState.setLegitimacy(leg);
     }
 
     // ========================================================================
-    // Завершение исследований
+    // Завершение исследований (с вызовами onTechResearched)
     // ========================================================================
 
     private void completeTech() {
@@ -258,6 +273,8 @@ public class TurnManager {
             controller.getAdvisor().showTechComplete(currentTech);
         }
         currentTech.setResearched(true);
+        // Реакция групп интересов
+        controller.getGovernmentManager().onTechResearched(currentTech.getName());
         currentTech = null;
         techInvested = 0;
         recalcIncome();
@@ -270,6 +287,8 @@ public class TurnManager {
             controller.getAdvisor().showTechComplete(currentSocial);
         }
         currentSocial.setResearched(true);
+        // Реакция групп интересов
+        controller.getGovernmentManager().onTechResearched(currentSocial.getName());
         currentSocial = null;
         socialInvested = 0;
         recalcIncome();
@@ -283,6 +302,8 @@ public class TurnManager {
             controller.getAdvisor().showTechComplete(currentReligion);
         }
         currentReligion.setResearched(true);
+        // Реакция групп интересов
+        controller.getGovernmentManager().onTechResearched(currentReligion.getName());
         currentReligion = null;
         religionInvested = 0;
         recalcIncome();
@@ -357,9 +378,9 @@ public class TurnManager {
         controller.recalculateFog();
         controller.getHistoryTracker().addEntry(sciencePerTurn, culturePerTurn, faithPerTurn);
 
-        // Обновление таймеров законов и политического процесса
         controller.getGovernmentManager().updateRepealedLaws();
         controller.getGovernmentManager().updatePoliticalProcess();
+        controller.getGovernmentManager().updateInterestGroupsPeriodically();
 
         controller.updateUI();
 

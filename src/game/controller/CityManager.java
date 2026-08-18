@@ -16,7 +16,6 @@ public class CityManager {
     private World world;
     private final List<City> cities = new ArrayList<>();
 
-    // Регистры
     private final ImprovementRegistry improvementRegistry;
     private final DistrictRegistry districtRegistry;
     private final CenterImprovementRegistry centerImprovementRegistry;
@@ -31,13 +30,8 @@ public class CityManager {
         this.techRegistry = controller.getTechRegistry();
     }
 
-    public List<City> getCities() {
-        return cities;
-    }
-
-    public void setWorld(World world) {
-        this.world = world;
-    }
+    public List<City> getCities() { return cities; }
+    public void setWorld(World world) { this.world = world; }
 
     public void foundCity(Unit unit, String cityName) {
         if (unit == null || !unit.canFoundCity() || unit.getActionPoints() <= 0) return;
@@ -70,6 +64,9 @@ public class CityManager {
 
         controller.clearHighlights();
         controller.selectUnit(null);
+
+        // Реакция групп интересов на основание города
+        controller.getGovernmentManager().onCityFounded();
 
         if (controller.onUnitSelected != null) controller.onUnitSelected.run();
         if (controller.onCitySelected != null) controller.onCitySelected.run();

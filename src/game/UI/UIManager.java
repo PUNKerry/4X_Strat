@@ -209,7 +209,10 @@ public class UIManager {
 
     // Показать панель правительства
     public void showGovernmentOverlay() {
-        // Проверка на открытие перенесена в GovernmentPanel.show()
+        if (!controller.isLegitimacyUnlocked()) {
+            controller.updateStatus("Панель правительства станет доступна после изучения 'Вождество'.");
+            return;
+        }
         overlayRootLocal.getChildren().clear();
         VBox content = controller.getGovernmentPanel().getPanel();
         Button closeBtn = new Button("✕");
@@ -220,7 +223,9 @@ public class UIManager {
         overlayRootLocal.getChildren().addAll(content, closeBtn);
         overlayRootLocal.setVisible(true);
         controller.getGovernmentPanel().updatePanel();
-        // Советник вызывается внутри GovernmentPanel.show()
+        if (controller.getAdvisor() != null) {
+            controller.getAdvisor().showGovernmentPanelTutorial();
+        }
     }
 
     public static class ProductionButtonItem {

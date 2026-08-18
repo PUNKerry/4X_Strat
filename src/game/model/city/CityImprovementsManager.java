@@ -13,25 +13,15 @@ public class CityImprovementsManager {
     private final World world;
     private final GameController controller;
 
-    // Регистры
     private final ImprovementRegistry improvementRegistry;
     private final DistrictRegistry districtRegistry;
     private final CenterImprovementRegistry centerRegistry;
     private final TechRegistry techRegistry;
 
-    public ImprovementRegistry getImprovementRegistry() {
-        return improvementRegistry;
-    }
+    public ImprovementRegistry getImprovementRegistry() { return improvementRegistry; }
+    public TechRegistry getTechRegistry() { return techRegistry; }
+    public DistrictRegistry getDistrictRegistry() { return districtRegistry; }
 
-    public TechRegistry getTechRegistry() {
-        return techRegistry;
-    }
-
-    public DistrictRegistry getDistrictRegistry() {
-        return districtRegistry;
-    }
-
-    // Состояние
     private Map<Hex, Improvement> improvementsInProgress = new HashMap<>();
     private Map<Hex, Improvement> completedImprovements = new HashMap<>();
     private Set<District> completedDistricts = new HashSet<>();
@@ -51,25 +41,9 @@ public class CityImprovementsManager {
         this.techRegistry = techRegistry;
     }
 
-    // ========================================================================
-    // Геттеры
-    // ========================================================================
-
-    public Set<District> getCompletedDistricts() {
-        return completedDistricts;
-    }
-
-    public Set<String> getCompletedCenterImprovements() {
-        return completedCenterImprovements;
-    }
-
-    public Map<Hex, Improvement> getCompletedImprovements() {
-        return completedImprovements;
-    }
-
-    // ========================================================================
-    // Клеточные улучшения
-    // ========================================================================
+    public Set<District> getCompletedDistricts() { return completedDistricts; }
+    public Set<String> getCompletedCenterImprovements() { return completedCenterImprovements; }
+    public Map<Hex, Improvement> getCompletedImprovements() { return completedImprovements; }
 
     public boolean canBuildImprovement(Hex hex, Improvement.Type type) {
         ImprovementData data = improvementRegistry.get(type);
@@ -123,6 +97,8 @@ public class CityImprovementsManager {
         if (tile != null) {
             tile.setImprovement(imp);
         }
+        // Реакция групп интересов на постройку улучшения
+        controller.getGovernmentManager().onImprovementBuilt(imp.getType().name());
     }
 
     public Improvement getImprovementAt(Hex hex) {
@@ -205,6 +181,8 @@ public class CityImprovementsManager {
         if (tile != null) {
             tile.setDistrict(district);
         }
+        // Районы тоже могут считаться улучшениями – вызовем onImprovementBuilt с типом "DISTRICT"
+        controller.getGovernmentManager().onImprovementBuilt("DISTRICT_" + district.getType().name());
     }
 
     public void addDistrictToQueue(District district) {
@@ -232,10 +210,12 @@ public class CityImprovementsManager {
         if (!completedCenterImprovements.contains(name)) {
             completedCenterImprovements.add(name);
         }
+        // Реакция групп на центральное улучшение
+        controller.getGovernmentManager().onImprovementBuilt("CENTER_" + name);
     }
 
     // ========================================================================
-    // Подсчёт бонусов (используется в City)
+    // Подсчёт бонусов
     // ========================================================================
 
     public int getFoodBonus() {
@@ -347,10 +327,6 @@ public class CityImprovementsManager {
         }
         return null;
     }
-
-    // ========================================================================
-    // Сброс
-    // ========================================================================
 
     public void reset() {
         improvementsInProgress.clear();

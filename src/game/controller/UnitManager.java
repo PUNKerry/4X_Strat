@@ -12,9 +12,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Управление юнитами: создание, спавн, перемещение, отдых, роспуск.
- */
 public class UnitManager {
 
     private final GameController controller;
@@ -32,33 +29,14 @@ public class UnitManager {
         this.hexGrid = controller.getHexGrid();
     }
 
-    /**
-     * Обновляет ссылки на World и HexGrid при старте новой игры.
-     */
     public void setWorldAndHexGrid(World world, HexGrid hexGrid) {
         this.world = world;
         this.hexGrid = hexGrid;
     }
 
-    // ========================================================================
-    // Геттеры
-    // ========================================================================
-
-    public List<Unit> getAllUnits() {
-        return allUnits;
-    }
-
-    public Unit getPlayerUnit() {
-        return playerUnit;
-    }
-
-    public void setPlayerUnit(Unit unit) {
-        this.playerUnit = unit;
-    }
-
-    // ========================================================================
-    // Создание и спавн юнитов
-    // ========================================================================
+    public List<Unit> getAllUnits() { return allUnits; }
+    public Unit getPlayerUnit() { return playerUnit; }
+    public void setPlayerUnit(Unit unit) { this.playerUnit = unit; }
 
     public void spawnUnitNearCity(City city, String unitType) {
         Hex center = city.getCenter();
@@ -69,6 +47,8 @@ public class UnitManager {
                     unit.setHomeCity(city);
                     world.addObject(unit);
                     allUnits.add(unit);
+                    // Группы интересов: реакция на создание юнита
+                    controller.getGovernmentManager().onUnitTrained(unitType);
                     controller.recalculateFog();
                     return;
                 }
@@ -83,6 +63,8 @@ public class UnitManager {
                         unit.setHomeCity(city);
                         world.addObject(unit);
                         allUnits.add(unit);
+                        // Группы интересов: реакция на создание юнита
+                        controller.getGovernmentManager().onUnitTrained(unitType);
                         controller.recalculateFog();
                         return;
                     }
@@ -154,6 +136,8 @@ public class UnitManager {
         settler.setHomeCity(city);
         world.addObject(settler);
         allUnits.add(settler);
+        // Поселенец – не боевой юнит, но можно тоже вызвать, если нужно
+        // controller.getGovernmentManager().onUnitTrained("settler");
         controller.recalculateFog();
         if (controller.onUnitSelected != null) Platform.runLater(controller.onUnitSelected);
         if (controller.onStatusChanged != null) Platform.runLater(controller.onStatusChanged);
@@ -166,14 +150,12 @@ public class UnitManager {
         }
         world.addObject(scout);
         allUnits.add(scout);
+        // Скаут – тоже юнит
+        controller.getGovernmentManager().onUnitTrained("scout");
         controller.recalculateFog();
         if (controller.onUnitSelected != null) Platform.runLater(controller.onUnitSelected);
         if (controller.onStatusChanged != null) Platform.runLater(controller.onStatusChanged);
     }
-
-    // ========================================================================
-    // Действия с юнитами
-    // ========================================================================
 
     public void moveUnit(Unit unit, Hex targetHex) {
         if (unit == null) return;
@@ -210,10 +192,6 @@ public class UnitManager {
         controller.recalculateFog();
     }
 
-    // ========================================================================
-    // Обновление юнитов в конце хода (используется в TurnManager)
-    // ========================================================================
-
     public void updateUnitsEndTurn() {
         List<Unit> toRemove = new ArrayList<>();
         for (Unit unit : allUnits) {
@@ -232,16 +210,11 @@ public class UnitManager {
             }
         }
 
-        // Сброс очков движения и действия
         for (Unit unit : allUnits) {
             unit.resetMovementPoints();
             unit.resetActionPoints();
         }
     }
-
-    // ========================================================================
-    // Сброс для новой игры
-    // ========================================================================
 
     public void reset() {
         allUnits.clear();
