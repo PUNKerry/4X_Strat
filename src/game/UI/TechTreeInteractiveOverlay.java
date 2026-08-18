@@ -138,8 +138,7 @@ public class TechTreeInteractiveOverlay {
                     if (branchType.equals("social")) {
                         isAvailable = controller.getTurnManager().isSocialTechAvailable(node);
                     } else if (branchType.equals("religion")) {
-                        // Религия разблокирована, если изучен Тотемизм – проверка уже сделана выше
-                        isAvailable = true; // если мы дошли сюда, то религия разблокирована
+                        isAvailable = controller.isReligionUnlocked();
                     } else {
                         isAvailable = true;
                     }
@@ -249,7 +248,7 @@ public class TechTreeInteractiveOverlay {
                 }
             }
 
-            // Tooltip
+            // Tooltip – убрано подробное описание, только краткая информация
             if (isVisible) {
                 Tooltip tooltip = new Tooltip();
                 tooltip.setStyle("-fx-font-size: 13px; -fx-background-color: #333; -fx-text-fill: white; -fx-padding: 10;");
@@ -257,13 +256,24 @@ public class TechTreeInteractiveOverlay {
                 ttText.append(node.getName()).append("\n");
                 ttText.append("Стоимость: ").append(node.getCost()).append("\n");
                 ttText.append("Требуется: ");
-                if (node.getPrerequisites().isEmpty()) ttText.append("нет");
-                else ttText.append(String.join(", ", node.getPrerequisites()));
-                ttText.append("\n\n").append(node.getDescription());
-                ttText.append("\n\nБонус: ").append(node.getBonusDescription());
-                if (isResearched) ttText.append("\n\n✅ Изучено");
-                else if (isNodeAvailable) ttText.append("\n\n🔓 Доступно");
-                else ttText.append("\n\n🔒 Заблокировано");
+                if (node.getPrerequisites().isEmpty()) {
+                    ttText.append("нет");
+                } else {
+                    ttText.append(String.join(", ", node.getPrerequisites()));
+                }
+                // Добавляем бонус (кратко)
+                String bonus = node.getBonusDescription();
+                if (bonus != null && !bonus.isEmpty()) {
+                    ttText.append("\n\nБонус: ").append(bonus);
+                }
+                // Статус
+                if (isResearched) {
+                    ttText.append("\n\n✅ Изучено");
+                } else if (isNodeAvailable) {
+                    ttText.append("\n\n🔓 Доступно");
+                } else {
+                    ttText.append("\n\n🔒 Заблокировано");
+                }
                 tooltip.setText(ttText.toString());
                 Tooltip.install(nodePane, tooltip);
             } else {
@@ -276,7 +286,7 @@ public class TechTreeInteractiveOverlay {
             nodePanes.put(node, nodePane);
         }
 
-        // --- Левая панель ---
+        // --- Левая панель: диаграмма + статистика ---
         VBox leftPanel = new VBox(15);
         leftPanel.setAlignment(Pos.TOP_CENTER);
         leftPanel.setMaxWidth(280);
@@ -328,7 +338,7 @@ public class TechTreeInteractiveOverlay {
     }
 
     // =========================================================================
-    // ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ
+    // ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ (без изменений)
     // =========================================================================
 
     private void determineVisibleNodes() {

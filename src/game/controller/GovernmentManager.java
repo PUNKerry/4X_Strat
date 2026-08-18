@@ -3,8 +3,8 @@ package game.controller;
 import game.model.government.Law;
 import game.model.registry.TechRegistry;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class GovernmentManager {
 
@@ -13,17 +13,20 @@ public class GovernmentManager {
     private String currentGovernment;
     private final List<Law> activeLaws;
     private final List<Law> allLaws;
+    private final Map<Law, Integer> repealedLaws; // закон -> ходов до восстановления
 
     public GovernmentManager(GameController controller, TechRegistry techRegistry) {
         this.controller = controller;
         this.techRegistry = techRegistry;
-        this.currentGovernment = "Родоплеменной строй";
+        this.currentGovernment = "Вождество"; // теперь стартовая форма
         this.activeLaws = new ArrayList<>();
         this.allLaws = new ArrayList<>();
+        this.repealedLaws = new HashMap<>();
         initLaws();
     }
 
     private void initLaws() {
+        // Законы, доступные с определённых технологий или форм правления
         allLaws.add(new Law("Общинные собрания", "Укрепляет общину", "Традиции", null,
                 0, 1, 0, 1, 1, 0));
         allLaws.add(new Law("Кодекс законов", "Систематизация законодательства", "Кодекс законов", null,
@@ -54,10 +57,27 @@ public class GovernmentManager {
         this.currentGovernment = government;
     }
 
+    /**
+     * Обновляет таймеры отменённых законов (вызывается в конце хода).
+     */
+    public void updateRepealedLaws() {
+        Iterator<Map.Entry<Law, Integer>> it = repealedLaws.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<Law, Integer> entry = it.next();
+            int turnsLeft = entry.getValue() - 1;
+            if (turnsLeft <= 0) {
+                it.remove();
+            } else {
+                entry.setValue(turnsLeft);
+            }
+        }
+    }
+
     public List<Law> getAvailableLaws() {
         List<Law> available = new ArrayList<>();
         for (Law law : allLaws) {
             if (activeLaws.contains(law)) continue;
+            if (repealedLaws.containsKey(law)) continue; // на перезарядке
             if (law.getRequiredTech() != null && !techRegistry.isResearched(law.getRequiredTech())) continue;
             if (law.getRequiredGovernment() != null && !law.getRequiredGovernment().equals(currentGovernment)) continue;
             available.add(law);
@@ -65,8 +85,34 @@ public class GovernmentManager {
         return available;
     }
 
+    public List<Law> getActiveLaws() {
+        return new ArrayList<>(activeLaws);
+    }
+
+    public List<Law> getTemporarilyUnavailableLaws() {
+        List<Law> unavailable = new ArrayList<>();
+        for (Law law : allLaws) {
+            if (activeLaws.contains(law)) continue;
+            // Проверяем, почему недоступен
+            if (repealedLaws.containsKey(law)) {
+                unavailable.add(law);
+                continue;
+            }
+            if (law.getRequiredTech() != null && !techRegistry.isResearched(law.getRequiredTech())) {
+                unavailable.add(law);
+                continue;
+            }
+            if (law.getRequiredGovernment() != null && !law.getRequiredGovernment().equals(currentGovernment)) {
+                unavailable.add(law);
+                continue;
+            }
+        }
+        return unavailable;
+    }
+
     public boolean adoptLaw(Law law) {
         if (activeLaws.contains(law)) return false;
+        if (repealedLaws.containsKey(law)) return false;
         if (law.getRequiredTech() != null && !techRegistry.isResearched(law.getRequiredTech())) return false;
         if (law.getRequiredGovernment() != null && !law.getRequiredGovernment().equals(currentGovernment)) return false;
         activeLaws.add(law);
@@ -78,11 +124,13 @@ public class GovernmentManager {
         if (!activeLaws.contains(law)) return false;
         activeLaws.remove(law);
         law.setActive(false);
+        // Закон становится недоступным на 10 ходов
+        repealedLaws.put(law, 10);
         return true;
     }
 
-    public List<Law> getActiveLaws() {
-        return new ArrayList<>(activeLaws);
+    public int getRepealCooldown(Law law) {
+        return repealedLaws.getOrDefault(law, 0);
     }
 
     public int getTotalScienceBonus() {
@@ -111,7 +159,8 @@ public class GovernmentManager {
 
     public void reset() {
         activeLaws.clear();
-        currentGovernment = "Родоплеменной строй";
+        repealedLaws.clear();
+        currentGovernment = "Вождество";
         for (Law law : allLaws) {
             law.setActive(false);
         }

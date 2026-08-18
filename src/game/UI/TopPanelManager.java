@@ -11,14 +11,10 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
 
-/**
- * Управление верхней панелью: ход, статус, ресурсы, легитимность, кнопка завершения хода.
- */
 public class TopPanelManager {
 
     private final GameController controller;
     private final UIManager uiManager;
-    private Button govButton;
 
     private HBox topPanel;
     private Label turnLabel;
@@ -27,6 +23,7 @@ public class TopPanelManager {
     private Label scienceLabel, cultureLabel, treasuryLabel, pietyLabel, legitimacyLabel;
     private ProgressBar legitimacyProgressBar;
     private HBox legitimacyBox;
+    private Button govButton;
 
     public TopPanelManager(GameController controller, UIManager uiManager) {
         this.controller = controller;
@@ -34,30 +31,13 @@ public class TopPanelManager {
         this.topPanel = createTopPanel();
     }
 
-    // ========================================================================
     // Геттеры компонентов
-    // ========================================================================
+    public HBox getTopPanel() { return topPanel; }
+    public Label getTurnLabel() { return turnLabel; }
+    public Label getStatusLabel() { return statusLabel; }
+    public Button getEndTurnButton() { return endTurnButton; }
 
-    public HBox getTopPanel() {
-        return topPanel;
-    }
-
-    public Label getTurnLabel() {
-        return turnLabel;
-    }
-
-    public Label getStatusLabel() {
-        return statusLabel;
-    }
-
-    public Button getEndTurnButton() {
-        return endTurnButton;
-    }
-
-    // ========================================================================
-    // Методы обновления
-    // ========================================================================
-
+    // Обновления
     public void updateTurn(int turn) {
         turnLabel.setText("Ход: " + turn);
     }
@@ -66,9 +46,6 @@ public class TopPanelManager {
         statusLabel.setText(text);
     }
 
-    /**
-     * Обновляет отображение ресурсов и легитимности на верхней панели.
-     */
     public void updateResourcesUI() {
         scienceLabel.setText("🔬 " + controller.getSciencePerTurn() + "/ход");
         cultureLabel.setText("🎭 " + controller.getCulturePerTurn() + "/ход");
@@ -104,15 +81,13 @@ public class TopPanelManager {
             legitimacyLabel.setVisible(true);
             legitimacyProgressBar.setVisible(false);
         }
+
+        // Кнопка правительства появляется после изучения "Вождество"
         boolean govUnlocked = controller.isGovernmentUnlocked();
-//        govButton.setVisible(govUnlocked);
-//        govButton.setVisible(true);
+        govButton.setVisible(govUnlocked);
     }
 
-    // ========================================================================
     // Создание верхней панели
-    // ========================================================================
-
     private HBox createTopPanel() {
         HBox panel = new HBox(15);
         panel.setPadding(new Insets(8, 15, 8, 15));
@@ -160,18 +135,23 @@ public class TopPanelManager {
         endTurnButton.setStyle("-fx-font-size: 14px; -fx-background-color: #4CAF50; -fx-text-fill: white;");
         endTurnButton.setOnAction(e -> controller.endTurn());
 
-        // В методе createTopPanel()
+        // Кнопка правительства
         govButton = new Button("⚖️ Правительство");
         govButton.setStyle("-fx-font-size: 12px; -fx-background-color: #4a5a7a; -fx-text-fill: white;");
-        govButton.setVisible(true); // временно всегда видна
-        govButton.setOnAction(e -> uiManager.showGovernmentOverlay());
-        panel.getChildren().add(govButton);
-
+        govButton.setVisible(false);
+        govButton.setOnAction(e -> {
+            if (controller.isGovernmentUnlocked()) {
+                uiManager.showGovernmentOverlay();
+            } else {
+                controller.updateStatus("Изучите 'Вождество' для доступа.");
+            }
+        });
 
         panel.getChildren().addAll(
                 turnLabel, statusLabel, spacer,
                 scienceLabel, cultureLabel, treasuryLabel, pietyLabel,
                 legitimacyBox,
+                govButton,
                 endTurnButton
         );
 

@@ -8,7 +8,9 @@ import game.model.world.World;
 import javafx.application.Platform;
 
 public class TurnManager {
+
     private final GameController controller;
+
 
     private int turnNumber = 1;
     private boolean isPlayerTurn = true;
@@ -26,7 +28,12 @@ public class TurnManager {
 
     public TurnManager(GameController controller) {
         this.controller = controller;
+
     }
+
+    // ========================================================================
+    // Геттеры
+    // ========================================================================
 
     public int getTurnNumber() { return turnNumber; }
     public boolean isPlayerTurn() { return isPlayerTurn; }
@@ -49,17 +56,20 @@ public class TurnManager {
 
     public int getTechTurnsLeft() {
         if (currentTech == null || sciencePerTurn == 0) return Integer.MAX_VALUE;
-        return (int) Math.ceil((double) (currentTech.getCost() - techInvested) / sciencePerTurn);
+        int remaining = currentTech.getCost() - techInvested;
+        return (int) Math.ceil((double) remaining / sciencePerTurn);
     }
 
     public int getSocialTurnsLeft() {
         if (currentSocial == null || culturePerTurn == 0) return Integer.MAX_VALUE;
-        return (int) Math.ceil((double) (currentSocial.getCost() - socialInvested) / culturePerTurn);
+        int remaining = currentSocial.getCost() - socialInvested;
+        return (int) Math.ceil((double) remaining / culturePerTurn);
     }
 
     public int getReligionTurnsLeft() {
         if (currentReligion == null || faithPerTurn == 0) return Integer.MAX_VALUE;
-        return (int) Math.ceil((double) (currentReligion.getCost() - religionInvested) / faithPerTurn);
+        int remaining = currentReligion.getCost() - religionInvested;
+        return (int) Math.ceil((double) remaining / faithPerTurn);
     }
 
     public double getTechProgress() {
@@ -78,7 +88,7 @@ public class TurnManager {
     }
 
     // ========================================================================
-    // ВЫБОР ИССЛЕДОВАНИЙ
+    // Выбор исследований
     // ========================================================================
 
     public boolean selectTech(String techName) {
@@ -126,7 +136,7 @@ public class TurnManager {
     }
 
     // ========================================================================
-    // ПОЛЮСА И УСЛОВИЯ
+    // Полюса и условия
     // ========================================================================
 
     public double[] computePoleValues() {
@@ -150,7 +160,7 @@ public class TurnManager {
     }
 
     // ========================================================================
-    // ДИНАМИЧЕСКИЕ УСЛОВИЯ ДЛЯ СОЦИАЛЬНОЙ ВЕТКИ
+    // Динамические условия для социальной ветки
     // ========================================================================
 
     public boolean isSocialTechAvailable(TechNode node) {
@@ -178,7 +188,7 @@ public class TurnManager {
     }
 
     // ========================================================================
-    // СБРОС СОСТОЯНИЯ
+    // Сброс состояния
     // ========================================================================
 
     public void reset() {
@@ -196,7 +206,7 @@ public class TurnManager {
     }
 
     // ========================================================================
-    // ПЕРЕСЧЁТ ДОХОДОВ И ЛЕГИТИМНОСТИ
+    // Пересчёт доходов и легитимности
     // ========================================================================
 
     void recalcIncome() {
@@ -234,22 +244,20 @@ public class TurnManager {
         }
         leg += techCount * 2;
         leg += culturePerTurn / 2;
-        // Добавляем бонусы от построек в каждом городе
-        for (City city : controller.getCities()) {
-            leg += city.getLegitimacyBonus();
-        }
+        // Бонус от законов
+        leg += controller.getGovernmentManager().getTotalLegitimacyBonus();
         leg = Math.min(100, Math.max(0, leg));
         gameState.setLegitimacy(leg);
     }
 
     // ========================================================================
-    // ЗАВЕРШЕНИЕ ИССЛЕДОВАНИЙ
+    // Завершение исследований
     // ========================================================================
 
     private void completeTech() {
         if (currentTech == null) return;
         if (controller.getAdvisor() != null && currentTech.getAdvisorMessage() != null) {
-            controller.getAdvisor().showTechComplete(currentTech.getAdvisorMessage());
+            controller.getAdvisor().showTechComplete(currentTech);
         }
         currentTech.setResearched(true);
         currentTech = null;
@@ -261,7 +269,7 @@ public class TurnManager {
     private void completeSocial() {
         if (currentSocial == null) return;
         if (controller.getAdvisor() != null && currentSocial.getAdvisorMessage() != null) {
-            controller.getAdvisor().showTechComplete(currentSocial.getAdvisorMessage());
+            controller.getAdvisor().showTechComplete(currentSocial);
         }
         currentSocial.setResearched(true);
         currentSocial = null;
@@ -274,7 +282,7 @@ public class TurnManager {
     private void completeReligion() {
         if (currentReligion == null) return;
         if (controller.getAdvisor() != null && currentReligion.getAdvisorMessage() != null) {
-            controller.getAdvisor().showTechComplete(currentReligion.getAdvisorMessage());
+            controller.getAdvisor().showTechComplete(currentReligion);
         }
         currentReligion.setResearched(true);
         currentReligion = null;
@@ -306,6 +314,7 @@ public class TurnManager {
             gameState.addPiety(faithPerTurn);
         }
 
+        // Прогресс исследований
         if (currentTech != null) {
             techInvested += sciencePerTurn;
             if (techInvested >= currentTech.getCost()) {
@@ -325,6 +334,7 @@ public class TurnManager {
             }
         }
 
+        // Обновление городов
         World world = controller.getWorld();
         for (City city : controller.getCities()) {
             int totalFood = city.calculateFood(world);
@@ -342,16 +352,24 @@ public class TurnManager {
             city.updateExpansion();
         }
 
+        // Обновление юнитов
         controller.updateUnitsEndTurn();
 
+        // Сброс накоплений
         gameState.resetScience();
         gameState.resetCulture();
 
+        // Пересчёт легитимности и тумана
         recalculateLegitimacy();
         controller.recalculateFog();
         controller.getHistoryTracker().addEntry(sciencePerTurn, culturePerTurn, faithPerTurn);
+
+        // Обновление таймеров отменённых законов
+        controller.getGovernmentManager().updateRepealedLaws();
+
         controller.updateUI();
 
+        // Пауза перед следующим ходом
         new Thread(() -> {
             try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
             Platform.runLater(() -> {

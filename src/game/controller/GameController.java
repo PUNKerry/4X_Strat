@@ -19,18 +19,12 @@ import game.model.world.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public class GameController {
 
     // --- Основные компоненты ---
     private World world;
     private HexGrid hexGrid;
-
-    private double canvasWidth = 800;
-    private double canvasHeight = 600;
-
-
     private GameState gameState;
     private TechTree techTree;
     private Advisor advisor;
@@ -42,9 +36,6 @@ public class GameController {
     private final DistrictRegistry districtRegistry;
     private final CenterImprovementRegistry centerImprovementRegistry;
 
-    private GovernmentManager governmentManager;
-    private GovernmentPanel governmentPanel;
-
     // --- Менеджеры ---
     private final TurnManager turnManager;
     private final SelectionManager selectionManager;
@@ -55,9 +46,13 @@ public class GameController {
     private final CityViewManager cityViewManager;
     private final CityManager cityManager;
     private final AssignmentManager assignmentManager;
+    private final GovernmentManager governmentManager;
+
+    // --- Панель правительства ---
+    private final GovernmentPanel governmentPanel;
 
     // --- Дополнительные компоненты ---
-    private FogOfWar fogOfWar;
+    private final FogOfWar fogOfWar;
     private TileRenderer tileRenderer;
 
     // --- История ---
@@ -66,6 +61,8 @@ public class GameController {
     // --- Состояние игры ---
     private final int cols = 60;
     private final int rows = 40;
+    private double canvasWidth = 800;
+    private double canvasHeight = 600;
 
     // Колбэки UI
     Runnable onUnitSelected;
@@ -92,10 +89,6 @@ public class GameController {
 
         // Создаём регистры на основе переданного TechTree
         this.techRegistry = new TechRegistry(techTree);
-
-        this.governmentManager = new GovernmentManager(this, techRegistry);
-        this.governmentPanel = new GovernmentPanel(this);
-
         this.improvementRegistry = new ImprovementRegistry();
         this.districtRegistry = new DistrictRegistry();
         this.centerImprovementRegistry = new CenterImprovementRegistry();
@@ -113,6 +106,8 @@ public class GameController {
         this.cityViewManager = new CityViewManager(this, cameraManager);
         this.cityManager = new CityManager(this);
         this.assignmentManager = new AssignmentManager(this);
+        this.governmentManager = new GovernmentManager(this, techRegistry);
+        this.governmentPanel = new GovernmentPanel(this);
 
         CityGlobal.setCities(cityManager.getCities());
 
@@ -122,17 +117,7 @@ public class GameController {
     // ========================================================================
     // Геттеры
     // ========================================================================
-    public GovernmentManager getGovernmentManager() {
-        return governmentManager;
-    }
 
-    public GovernmentPanel getGovernmentPanel() {
-        return governmentPanel;
-    }
-
-    public boolean isGovernmentUnlocked() {
-        return techTree.isResearched("Государство");
-    }
     public World getCurrentWorld() { return world; }
     public HexGrid getCurrentHexGrid() { return hexGrid; }
     public World getWorld() { return world; }
@@ -146,7 +131,7 @@ public class GameController {
     public int getCols() { return cols; }
     public int getRows() { return rows; }
 
-    // Геттеры для регистров (используются в UIManager и других классах)
+    // Геттеры для регистров
     public TechRegistry getTechRegistry() { return techRegistry; }
     public ImprovementRegistry getImprovementRegistry() { return improvementRegistry; }
     public DistrictRegistry getDistrictRegistry() { return districtRegistry; }
@@ -161,8 +146,15 @@ public class GameController {
     public List<Hex> getCurrentStopPoints() { return currentStopPoints; }
     public boolean isWaypointPending() { return isWaypointPending; }
 
+    // Геттеры для правительства
+    public GovernmentManager getGovernmentManager() { return governmentManager; }
+    public GovernmentPanel getGovernmentPanel() { return governmentPanel; }
+    public boolean isGovernmentUnlocked() {
+        return techTree.isResearched("Вождество");
+    }
+
     // ========================================================================
-    // Геттеры, делегированные менеджерам (сокращённо)
+    // Геттеры, делегированные менеджерам
     // ========================================================================
 
     public int getTurnNumber() { return turnManager.getTurnNumber(); }
@@ -193,6 +185,9 @@ public class GameController {
     public boolean selectSocial(String socialName) { return turnManager.selectSocial(socialName); }
     public boolean selectReligion(String religionName) { return turnManager.selectReligion(religionName); }
 
+    public TurnManager getTurnManager() { return turnManager; }
+
+    // SelectionManager
     public Unit getSelectedUnit() { return selectionManager.getSelectedUnit(); }
     public City getSelectedCity() { return selectionManager.getSelectedCity(); }
     public Map<Hex, Integer> getReachableHexes() { return selectionManager.getReachableHexes(); }
@@ -212,6 +207,7 @@ public class GameController {
         clearPath();
     }
 
+    // PlacementManager
     public boolean isPlacementMode() { return placementManager.isPlacementMode(); }
     public boolean isDistrictPlacementMode() { return placementManager.isDistrictPlacementMode(); }
     public void enterPlacementMode(City city, Improvement.Type type) { placementManager.enterPlacementMode(city, type); }
@@ -221,8 +217,10 @@ public class GameController {
     public void exitDistrictPlacementMode() { placementManager.exitDistrictPlacementMode(); }
     public void handleDistrictPlacementClick(Hex hex) { placementManager.handleDistrictPlacementClick(hex); }
 
+    // FogManager
     public void recalculateFog() { fogManager.recalculateFog(); }
 
+    // UnitManager
     public List<Unit> getAllUnits() { return unitManager.getAllUnits(); }
     public Unit getPlayerUnit() { return unitManager.getPlayerUnit(); }
     public void setPlayerUnit(Unit unit) { unitManager.setPlayerUnit(unit); }
@@ -239,10 +237,13 @@ public class GameController {
     public void disbandUnit(Unit unit) { unitManager.disbandUnit(unit); }
     public void updateUnitsEndTurn() { unitManager.updateUnitsEndTurn(); }
 
+    // CameraManager
     public double getCurrentHexSize() { return cameraManager.getCurrentHexSize(); }
     public double getMinHexSize() { return 12; }
     public double getMaxHexSize() { return 55; }
     public void setCanvasSize(double width, double height) {
+        this.canvasWidth = width;
+        this.canvasHeight = height;
         cameraManager.setCanvasSize(width, height);
         if (tileRenderer != null) {
             tileRenderer.setCanvasSize(width, height);
@@ -257,6 +258,7 @@ public class GameController {
     public void centerOnUnit(Unit unit) { cameraManager.centerOnUnit(unit); }
     public void centerOnHex(Hex hex) { cameraManager.centerOnHex(hex); }
 
+    // CityViewManager
     public boolean isCityView() { return cityViewManager.isCityView(); }
     public City getZoomedCity() { return cityViewManager.getZoomedCity(); }
     public void enterCityView(City city) {
@@ -269,17 +271,17 @@ public class GameController {
     }
     public boolean isWithinCityRadius(Hex hex) { return cityViewManager.isWithinCityRadius(hex); }
 
+    // CityManager
     public List<City> getCities() { return cityManager.getCities(); }
     public void foundCity(Unit unit, String cityName) { cityManager.foundCity(unit, cityName); }
     public City findCityAtHex(Hex hex) { return cityManager.findCityAtHex(hex); }
     public void addProjectToCity(City city, String project) { cityManager.addProjectToCity(city, project); }
 
+    // AssignmentManager
     public boolean isAssignmentMode() { return assignmentManager.isAssignmentMode(); }
     public City getAssignmentCity() { return assignmentManager.getAssignmentCity(); }
     public void toggleAssignmentMode() { assignmentManager.toggleAssignmentMode(); }
     public void handleAssignmentClick(Hex hex) { assignmentManager.handleAssignmentClick(hex); }
-
-    public TurnManager getTurnManager() { return turnManager; }
 
     // ========================================================================
     // Сеттеры и колбэки
@@ -355,6 +357,42 @@ public class GameController {
     }
 
     // ========================================================================
+    // Легитимность – факторы
+    // ========================================================================
+
+    public List<String> getLegitimacyFactors() {
+        List<String> factors = new ArrayList<>();
+        int leg = gameState.getLegitimacy();
+        factors.add("Базовая легитимность: 50");
+
+        int cityBonus = getCities().size() * 5;
+        if (cityBonus > 0) factors.add("+ " + cityBonus + " за города (" + getCities().size() + ")");
+
+        int totalPop = 0;
+        for (City city : getCities()) totalPop += city.getPopulation();
+        int popBonus = totalPop / 1000;
+        if (popBonus > 0) factors.add("+ " + popBonus + " за население (" + totalPop + ")");
+
+        int techCount = 0;
+        for (TechNode node : techTree.getTechs()) {
+            if (node.isResearched()) techCount++;
+        }
+        int techBonus = techCount * 2;
+        if (techBonus > 0) factors.add("+ " + techBonus + " за изученные технологии (" + techCount + ")");
+
+        int cultureBonus = getCulturePerTurn() / 2;
+        if (cultureBonus > 0) factors.add("+ " + cultureBonus + " за культуру");
+
+        int lawBonus = governmentManager.getTotalLegitimacyBonus();
+        if (lawBonus != 0) factors.add((lawBonus > 0 ? "+ " : "") + lawBonus + " за законы");
+
+        if (leg < 50) factors.add("⚠️ Низкая легитимность: бонусы снижены");
+        if (leg > 80) factors.add("⭐ Высокая легитимность: бонусы увеличены");
+
+        return factors;
+    }
+
+    // ========================================================================
     // Старт новой игры
     // ========================================================================
 
@@ -365,52 +403,42 @@ public class GameController {
     }
 
     public void startNewGame() {
-        // Создаём новый мир и сетку
         world = new World();
         hexGrid = new HexGrid(28);
         hexGrid.setPadding(200);
 
-        // Сбрасываем туман (используем существующий fogOfWar)
         fogOfWar.reset();
-
-        // Обновляем tileRenderer с новой сеткой
         tileRenderer.setHexGrid(hexGrid);
         tileRenderer.setCanvasSize(canvasWidth, canvasHeight);
         world.setTileRenderer(tileRenderer);
 
-        // Обновляем ссылки в менеджерах
         unitManager.setWorldAndHexGrid(world, hexGrid);
         cityManager.setWorld(world);
 
-        // Генерируем мир
         WorldGenerator generator = new WorldGenerator(world, hexGrid, cols, rows);
         Hex startHex = generator.generate();
 
         world.updateTileGeometries(hexGrid);
 
-        // Создаём поселенца
         Settler playerUnit = new Settler(startHex, hexGrid, techTree);
         world.addObject(playerUnit);
         unitManager.getAllUnits().add(playerUnit);
         unitManager.setPlayerUnit(playerUnit);
 
-        // Настраиваем камеру
         cameraManager.setCurrentHexSize(28);
         centerMap();
         centerOnUnit(playerUnit);
         updateWorldBounds();
 
-        // Сброс менеджеров
         cityManager.reset();
         selectionManager.clearSelection();
         placementManager.reset();
         turnManager.reset();
-        fogManager.reset(); // вызываем reset у FogManager, который сбросит fogOfWar
+        fogManager.reset();
         cityViewManager.reset();
         assignmentManager.reset();
         governmentManager.reset();
 
-        // Пересчёт тумана (теперь видимость будет корректной)
         recalculateFog();
 
         if (advisor != null) advisor.reset();
@@ -428,7 +456,7 @@ public class GameController {
     }
 
     // ========================================================================
-    // ВИЗУАЛИЗАЦИЯ ПУТИ (предварительный просмотр)
+    // Визуализация пути
     // ========================================================================
 
     public void clearPath() {
@@ -461,10 +489,6 @@ public class GameController {
         isWaypointPending = true;
         pendingTargetHex = hex;
     }
-
-    // ========================================================================
-    // ПОДТВЕРЖДЕНИЕ МАРШРУТА С НЕМЕДЛЕННЫМ ДВИЖЕНИЕМ ДО ПЕРВОЙ ОСТАНОВКИ
-    // ========================================================================
 
     public void confirmWaypoint() {
         if (!isWaypointPending || pendingTargetHex == null) {
@@ -504,10 +528,6 @@ public class GameController {
         updateUI();
     }
 
-    // ========================================================================
-    // ОТМЕНА МАРШРУТА
-    // ========================================================================
-
     public void cancelWaypointForSelectedUnit() {
         Unit selected = getSelectedUnit();
         if (selected == null) return;
@@ -517,10 +537,6 @@ public class GameController {
         if (onUnitSelected != null) onUnitSelected.run();
         updateUI();
     }
-
-    // ========================================================================
-    // ВЫПОЛНЕНИЕ ДВИЖЕНИЯ ПО МАРШРУТАМ В КОНЦЕ ХОДА
-    // ========================================================================
 
     public void executeWaypointsMovement() {
         for (Unit unit : unitManager.getAllUnits()) {
@@ -573,7 +589,8 @@ public class GameController {
         turnManager.recalcIncome();
     }
 
-    public HistoryTracker getHistoryTracker() {return historyTracker;}
+    public HistoryTracker getHistoryTracker() { return historyTracker; }
+
     void recalculateLegitimacy() {
         turnManager.recalculateLegitimacy();
     }

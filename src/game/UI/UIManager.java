@@ -66,7 +66,7 @@ public class UIManager {
         cityNameInputOverlayLocal = createCityNameInputOverlay();
     }
 
-    // Геттеры для панелей (делегирование)
+    // Геттеры для панелей
     public HBox getTopPanel() { return topPanelManager.getTopPanel(); }
     public VBox getProgressPanel() { return uiPanelManager.getProgressPanel(); }
     public VBox getUnitPanel() { return uiPanelManager.getUnitPanel(); }
@@ -207,13 +207,9 @@ public class UIManager {
         overlay.show();
     }
 
-    // Показать панель правительства как оверлей
+    // Показать панель правительства
     public void showGovernmentOverlay() {
-        // Временно убрана проверка на технологию
-        // if (!controller.isGovernmentUnlocked()) {
-        //     updateStatus("Правительство станет доступно после изучения 'Государство'.");
-        //     return;
-        // }
+        // Проверка на открытие перенесена в GovernmentPanel.show()
         overlayRootLocal.getChildren().clear();
         VBox content = controller.getGovernmentPanel().getPanel();
         Button closeBtn = new Button("✕");
@@ -224,6 +220,7 @@ public class UIManager {
         overlayRootLocal.getChildren().addAll(content, closeBtn);
         overlayRootLocal.setVisible(true);
         controller.getGovernmentPanel().updatePanel();
+        // Советник вызывается внутри GovernmentPanel.show()
     }
 
     public static class ProductionButtonItem {

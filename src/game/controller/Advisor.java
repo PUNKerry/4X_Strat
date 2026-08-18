@@ -1,6 +1,7 @@
 package game.controller;
 
 import game.UI.UIManager;
+import game.model.research.TechNode;
 
 public class Advisor {
     private UIManager uiManager;
@@ -131,12 +132,56 @@ public class Advisor {
         uiManager.showAdvisorMessage(title, message, null);
     }
 
-    public void showTechComplete(String message) {
+    /**
+     * Показывает подробное сообщение о завершении исследования технологии.
+     * Использует все поля TechNode для создания развёрнутого уведомления.
+     */
+    public void showTechComplete(TechNode node) {
         if (uiManager == null) return;
-        String title = "🔬 Открытие!";
-        uiManager.showAdvisorMessage(title, message, null);
+
+        String title = "📜 Изучена технология: " + node.getName();
+
+        StringBuilder message = new StringBuilder();
+
+        // Исторический контекст (description)
+        if (node.getDescription() != null && !node.getDescription().isEmpty()) {
+            message.append("📖 ").append(node.getDescription()).append("\n\n");
+        }
+
+        // Игровое влияние (bonusDescription)
+        if (node.getBonusDescription() != null && !node.getBonusDescription().isEmpty()) {
+            message.append("🎯 Влияние на игру: ").append(node.getBonusDescription()).append("\n\n");
+        }
+
+        // Дополнительный совет от советника (advisorMessage)
+        if (node.getAdvisorMessage() != null && !node.getAdvisorMessage().isEmpty()) {
+            message.append("💡 Совет: ").append(node.getAdvisorMessage());
+        }
+
+        // Если по какой-то причине ничего нет – стандартное сообщение
+        if (message.length() == 0) {
+            message.append("Технология изучена. Открываются новые возможности.");
+        }
+
+        uiManager.showAdvisorMessage(title, message.toString(), null);
     }
+
     public boolean isSettlerTutorialShown() {
         return tutorialShownSettler;
+    }
+
+    // В классе Advisor
+    private boolean tutorialShownGovernment = false;
+
+    public void showGovernmentPanelTutorial() {
+        if (tutorialShownGovernment || uiManager == null) return;
+        tutorialShownGovernment = true;
+        String title = "⚖️ Панель правительства";
+        String message = "Теперь вам доступна панель правительства.\n\n" +
+                "Сейчас у вас родоплеменной строй – вы можете принимать базовые законы, которые дают небольшие бонусы.\n" +
+                "По мере развития культуры и изучения новых технологий (Право, Город-государство, Республика/Олигархия/Монархия) вы сможете менять форму правления.\n\n" +
+                "Каждая форма правления открывает уникальные законы и бонусы.\n" +
+                "Следите за легитимностью – она влияет на стабильность и доступность некоторых форм правления.";
+        uiManager.showAdvisorMessage(title, message, null);
     }
 }
