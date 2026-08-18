@@ -11,7 +11,6 @@ public class TurnManager {
 
     private final GameController controller;
 
-
     private int turnNumber = 1;
     private boolean isPlayerTurn = true;
 
@@ -28,7 +27,6 @@ public class TurnManager {
 
     public TurnManager(GameController controller) {
         this.controller = controller;
-
     }
 
     // ========================================================================
@@ -244,8 +242,8 @@ public class TurnManager {
         }
         leg += techCount * 2;
         leg += culturePerTurn / 2;
-        // Бонус от законов
         leg += controller.getGovernmentManager().getTotalLegitimacyBonus();
+        leg += controller.getGovernmentManager().getLegitimacyModifiersTotal();
         leg = Math.min(100, Math.max(0, leg));
         gameState.setLegitimacy(leg);
     }
@@ -314,7 +312,6 @@ public class TurnManager {
             gameState.addPiety(faithPerTurn);
         }
 
-        // Прогресс исследований
         if (currentTech != null) {
             techInvested += sciencePerTurn;
             if (techInvested >= currentTech.getCost()) {
@@ -334,7 +331,6 @@ public class TurnManager {
             }
         }
 
-        // Обновление городов
         World world = controller.getWorld();
         for (City city : controller.getCities()) {
             int totalFood = city.calculateFood(world);
@@ -352,24 +348,21 @@ public class TurnManager {
             city.updateExpansion();
         }
 
-        // Обновление юнитов
         controller.updateUnitsEndTurn();
 
-        // Сброс накоплений
         gameState.resetScience();
         gameState.resetCulture();
 
-        // Пересчёт легитимности и тумана
         recalculateLegitimacy();
         controller.recalculateFog();
         controller.getHistoryTracker().addEntry(sciencePerTurn, culturePerTurn, faithPerTurn);
 
-        // Обновление таймеров отменённых законов
+        // Обновление таймеров законов и политического процесса
         controller.getGovernmentManager().updateRepealedLaws();
+        controller.getGovernmentManager().updatePoliticalProcess();
 
         controller.updateUI();
 
-        // Пауза перед следующим ходом
         new Thread(() -> {
             try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
             Platform.runLater(() -> {
